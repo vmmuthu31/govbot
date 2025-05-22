@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchProposalFromPolkassembly } from "@/services/polkasembly";
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const { id } = params;
 
