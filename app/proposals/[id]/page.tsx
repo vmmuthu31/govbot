@@ -60,7 +60,7 @@ export default function ProposalDetailPage({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          proposalId: proposal.chainId,
+          proposalId: id, // Use the referendum ID from URL params
           conviction: 1,
         }),
       });
