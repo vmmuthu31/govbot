@@ -11,6 +11,8 @@
   "dependencies": {
     "@ai-sdk/groq": "^1.2.9",
     "@polkadot/api": "^16.0.1",
+    "@polkadot/extension-dapp": "^0.58.10",
+    "@polkadot/extension-inject": "^0.58.10",
     "@polkadot/keyring": "^13.5.1",
     "@polkadot/util": "^13.5.1",
     "@polkadot/util-crypto": "^13.5.1",

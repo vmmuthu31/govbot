@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Bot, ChevronRight } from "lucide-react";
+import { Bot } from "lucide-react";
 import { DelegateButton } from "../polkadot/DelegateButton";
+import { WalletConnect } from "../wallet/WalletConnect";
 
 export function Header() {
   return (
@@ -42,13 +43,7 @@ export function Header() {
               <Bot className="h-6 w-6 text-primary" />
             </Link>
 
-            <Link
-              href="/"
-              className="hidden md:inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
-            >
-              View Proposals
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Link>
+            <WalletConnect />
           </div>
         </div>
       </div>
