@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { RootLayout } from "@/components/layout/RootLayout";
 import { ProposalDetails } from "@/components/proposal/ProposalDetails";
@@ -13,15 +13,13 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 interface ProposalDetailPageProps {
-  params: {
-    id: string;
-  };
+  params: Promise<{ id: string }>;
 }
 
 export default function ProposalDetailPage({
   params,
 }: ProposalDetailPageProps) {
-  const { id } = params;
+  const { id } = use(params);
   const router = useRouter();
   const [proposal, setProposal] = useState<ProposalWithMessages | null>(null);
   const [loading, setLoading] = useState(true);

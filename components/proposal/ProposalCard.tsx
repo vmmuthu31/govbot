@@ -36,7 +36,12 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
       <CardHeader className="bg-muted/20 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Badge variant="outline">{proposal.track || "Unknown Track"}</Badge>
+            <Badge variant="outline">
+              Proposal ID: {proposal.chainId || "Unknown Track"}
+            </Badge>{" "}
+            <Badge variant="outline">
+              Track No: {proposal.track || "Unknown Track"}
+            </Badge>
             {proposal.vote && (
               <Badge className={getVoteBadgeColor(proposal.vote.decision)}>
                 {proposal.vote.decision}
@@ -58,7 +63,8 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
       <CardFooter className="border-t bg-muted/10 p-4">
         <div className="flex w-full items-center justify-between">
           <span className="text-xs text-muted-foreground">
-            Proposer: {proposal.proposer}
+            Proposer: {proposal.proposer.slice(0, 6)}...
+            {proposal.proposer.slice(-4)}
           </span>
           <div className="flex gap-2">
             <Link

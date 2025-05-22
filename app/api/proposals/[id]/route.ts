@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/db";
+import { fetchProposalFromPolkassembly } from "@/services/polkasembly";
 
 interface RouteParams {
   params: {
@@ -18,15 +18,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const proposal = await prisma.proposal.findUnique({
-      where: { id },
-      include: {
-        messages: {
-          orderBy: { createdAt: "asc" },
-        },
-        vote: true,
-      },
-    });
+    const proposal = await fetchProposalFromPolkassembly(id);
 
     if (!proposal) {
       return NextResponse.json(
