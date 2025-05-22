@@ -7,8 +7,6 @@ import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
-type Proposal = Awaited<ReturnType<typeof prisma.proposal.findFirst>>;
-
 export default async function Home() {
   const proposals = await prisma.proposal.findMany({
     orderBy: { createdAt: "desc" },
@@ -63,7 +61,7 @@ export default async function Home() {
 
             {proposals.length > 0 ? (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {proposals.map((proposal: Proposal) => (
+                {proposals.map((proposal) => (
                   <ProposalCard key={proposal.id} proposal={proposal} />
                 ))}
               </div>
