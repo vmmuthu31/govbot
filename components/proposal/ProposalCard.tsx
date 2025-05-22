@@ -76,7 +76,7 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
               Polkassembly <ExternalLinkIcon className="ml-1 h-3 w-3" />
             </Link>
             <Link
-              href={`/proposals/${proposal.id}`}
+              href={`/proposals/${proposal.chainId}`}
               className="inline-flex items-center rounded-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
             >
               View & Chat
