@@ -9,12 +9,11 @@ import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { formatDistanceToNow } from "@/utils/formatDistanceToNow";
 
 interface OnChainInfoProps {
-  chainId: string;
+  proposal?: RefCountedProposal | null;
 }
 
-export function OnChainInfo({ chainId }: OnChainInfoProps) {
-  const [proposal, setProposal] = useState<RefCountedProposal | null>(null);
-  const [loading, setLoading] = useState(true);
+export function OnChainInfo({ proposal }: OnChainInfoProps) {
+  const [loading, setLoading] = useState(!!!proposal);
   const [error, setError] = useState<string | null>(null);
   const [votingPower, setVotingPower] = useState<string | null>(null);
   const [botAddress, setBotAddress] = useState<string | null>(null);
@@ -22,32 +21,6 @@ export function OnChainInfo({ chainId }: OnChainInfoProps) {
   useEffect(() => {
     const fetchOnChainData = async () => {
       try {
-        const response = await fetch("/api/polkadot/proposals");
-        if (!response.ok) {
-          throw new Error("Failed to fetch on-chain proposals");
-        }
-
-        const data = await response.json();
-        const proposals = data.proposals as RefCountedProposal[];
-        const found = proposals.find((p) => p.id === chainId);
-
-        if (found) {
-          setProposal(found);
-        } else {
-          setProposal({
-            id: chainId,
-            track: "0",
-            submitted: Date.now().toString(),
-            submitter: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-            proposal: "Call: 0x0",
-            decisionDepositPlaced: true,
-            tally: {
-              ayes: "10000000000",
-              nays: "5000000000",
-            },
-          });
-        }
-
         const vpResponse = await fetch("/api/polkadot/voting-power");
         if (vpResponse.ok) {
           const vpData = await vpResponse.json();
@@ -63,7 +36,7 @@ export function OnChainInfo({ chainId }: OnChainInfoProps) {
     };
 
     fetchOnChainData();
-  }, [chainId]);
+  }, [proposal]);
 
   if (loading) {
     return (
@@ -136,6 +109,25 @@ export function OnChainInfo({ chainId }: OnChainInfoProps) {
             {proposal.decisionDepositPlaced ? "Placed" : "Not Placed"}
           </span>
         </div>
+
+        {proposal.decisionDeposit && (
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Deposit Amount:</span>
+            <span className="font-medium">
+              {formatDOT(proposal.decisionDeposit.amount)}
+            </span>
+          </div>
+        )}
+
+        {proposal.decisionDeposit && (
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Depositor:</span>
+            <span className="font-mono text-xs">
+              {proposal.decisionDeposit.who.slice(0, 8)}...
+              {proposal.decisionDeposit.who.slice(-6)}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="mt-4 space-y-2">
@@ -184,7 +176,7 @@ export function OnChainInfo({ chainId }: OnChainInfoProps) {
 
       <div className="pt-2">
         <a
-          href={`https://polkadot.subscan.io/referenda/${proposal.id}`}
+          href={`https://polkadot.subscan.io/referenda_v2/${proposal.id}`}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full"

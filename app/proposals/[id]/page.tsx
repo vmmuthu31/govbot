@@ -6,7 +6,11 @@ import { RootLayout } from "@/components/layout/RootLayout";
 import { ProposalDetails } from "@/components/proposal/ProposalDetails";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { OnChainInfo } from "@/components/proposal/OnChainInfo";
-import { ProposalWithMessages, ChatMessage } from "@/lib/types";
+import {
+  ProposalWithMessages,
+  ChatMessage,
+  RefCountedProposal,
+} from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
@@ -169,7 +173,9 @@ export default function ProposalDetailPage({
                 initialMessages={messages}
                 onRequestVote={handleRequestVote}
               />
-              <OnChainInfo chainId={proposal.chainId} />
+              <OnChainInfo
+                proposal={proposal as unknown as RefCountedProposal}
+              />
             </div>
           </div>
         </div>

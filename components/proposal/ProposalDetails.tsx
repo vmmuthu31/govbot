@@ -21,8 +21,10 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
       <div className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Badge variant="outline">{proposal.track || "Unknown Track"}</Badge>
-            <Badge variant="secondary">Chain ID: {proposal.chainId}</Badge>
+            <Badge variant="outline">
+              Track No: {proposal.track || "Unknown Track"}
+            </Badge>
+            <Badge variant="secondary">Proposal ID: {proposal.id}</Badge>
           </div>
           <div className="flex items-center text-sm text-muted-foreground">
             <CalendarIcon className="mr-1 h-4 w-4" />
@@ -36,7 +38,7 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
         </div>
         <div className="flex gap-2">
           <a
-            href={`https://polkadot.polkassembly.io/referenda/${proposal.chainId}`}
+            href={`https://polkadot.polkassembly.io/referenda/${proposal.id}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center text-sm text-primary underline-offset-4 hover:underline"
