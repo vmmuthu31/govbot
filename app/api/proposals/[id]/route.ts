@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { fetchProposalFromPolkassembly } from "@/services/polkasembly";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export const GET = async (
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) => {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json(
@@ -32,4 +32,4 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+};
