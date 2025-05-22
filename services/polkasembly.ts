@@ -130,7 +130,6 @@ export async function fetchActiveReferenda(
 
       const posts = data.posts || [];
 
-      // Transform and validate each post
       return posts.map((post: Post) => {
         if (!post.post_id && !post.id) {
           throw new Error(
@@ -152,7 +151,6 @@ export async function fetchActiveReferenda(
       lastError = error instanceof Error ? error : new Error(String(error));
 
       if (attempt < retryCount - 1) {
-        // Wait before retrying, with exponential backoff
         await new Promise((resolve) =>
           setTimeout(resolve, Math.pow(2, attempt) * 1000)
         );

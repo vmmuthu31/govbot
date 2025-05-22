@@ -6,7 +6,7 @@ import { RootLayout } from "@/components/layout/RootLayout";
 import { ProposalCard } from "@/components/proposal/ProposalCard";
 import type { ProposalWithMessages } from "@/lib/types";
 import Link from "next/link";
-import { Bot, RefreshCw, Search, Import, Cpu } from "lucide-react";
+import { Bot, RefreshCw, Search, Import } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,93 +23,101 @@ import { Label } from "@/components/ui/label";
 
 export default function Home() {
   const router = useRouter();
-  const [proposals, setProposals] = useState<ProposalWithMessages[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchId, setSearchId] = useState("");
+  const [activeProposals, setActiveProposals] = useState<
+    ProposalWithMessages[]
+  >([]);
+  const [importedProposals, setImportedProposals] = useState<
+    ProposalWithMessages[]
+  >([]);
+  const [allActiveProposals, setAllActiveProposals] = useState<
+    ProposalWithMessages[]
+  >([]);
+  const [allImportedProposals, setAllImportedProposals] = useState<
+    ProposalWithMessages[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [activeSearch, setActiveSearch] = useState("");
+  const [importedSearch, setImportedSearch] = useState("");
   const [importId, setImportId] = useState("");
   const [importing, setImporting] = useState(false);
-  const [searching, setSearching] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchProposals = async () => {
-      try {
-        const response = await fetch("/api/proposals");
-        if (response.ok) {
-          const data = await response.json();
-          setProposals(data.proposals || []);
-        }
-      } catch (err) {
-        console.error("Error fetching proposals:", err);
-        toast.error("Failed to load proposals. Please try again later.");
-      } finally {
-        setLoading(false);
+  const fetchProposals = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/proposals`);
+      if (response.ok) {
+        const data = await response.json();
+        setAllActiveProposals(data.activeProposals || []);
+        setAllImportedProposals(data.importedProposals || []);
+        setActiveProposals(data.activeProposals || []);
+        setImportedProposals(data.importedProposals || []);
       }
-    };
+    } catch {
+      toast.error("Failed to load proposals. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchProposals();
   }, []);
 
-  const handleSearch = async () => {
-    if (!searchId.trim()) {
-      toast.error("Please enter a valid proposal ID");
-      return;
+  useEffect(() => {
+    const q = activeSearch.trim().toLowerCase();
+    if (!q) {
+      setActiveProposals(allActiveProposals);
+    } else {
+      setActiveProposals(
+        allActiveProposals.filter(
+          (p) =>
+            p.title.toLowerCase().includes(q) ||
+            p.chainId.toLowerCase().includes(q)
+        )
+      );
     }
+  }, [activeSearch, allActiveProposals]);
 
-    setSearching(true);
-    try {
-      const response = await fetch(`/api/proposals/${searchId}`);
-      if (response.ok) {
-        const data = await response.json();
-        router.push(`/proposals/${data.proposal.chainId}`);
-      } else {
-        const errorData = await response.json();
-        toast.error(
-          errorData.error ||
-            "Proposal not found. Please check the ID and try again."
-        );
-      }
-    } catch (err) {
-      console.error("Error searching for proposal:", err);
-      toast.error("Failed to search for proposal. Please try again later.");
-    } finally {
-      setSearching(false);
+  useEffect(() => {
+    const q = importedSearch.trim().toLowerCase();
+    if (!q) {
+      setImportedProposals(allImportedProposals);
+    } else {
+      setImportedProposals(
+        allImportedProposals.filter(
+          (p) =>
+            p.title.toLowerCase().includes(q) ||
+            p.chainId.toLowerCase().includes(q)
+        )
+      );
     }
-  };
+  }, [importedSearch, allImportedProposals]);
 
   const handleImport = async () => {
     if (!importId.trim()) {
       toast.error("Please enter a valid proposal ID to import");
       return;
     }
-
     setImporting(true);
     try {
       const response = await fetch("/api/proposals", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ id: importId }),
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chainId: importId }),
       });
-
       if (response.ok) {
         toast.success("Proposal imported successfully!");
         setImportDialogOpen(false);
         setImportId("");
-        router.refresh();
+        fetchProposals();
       } else {
         const errorData = await response.json();
-        toast.error(
-          errorData.error ||
-            "Failed to import proposal. Please check the ID and try again."
-        );
+        toast.error(errorData.error || "Failed to import proposal.");
       }
-    } catch (err) {
-      console.error("Error importing proposal:", err);
-      toast.error(
-        "An error occurred while importing the proposal. Please try again later."
-      );
+    } catch {
+      toast.error("An error occurred while importing the proposal.");
     } finally {
       setImporting(false);
     }
@@ -128,6 +136,14 @@ export default function Home() {
       console.error("Error refreshing proposals:", err);
       toast.error("Failed to refresh proposals");
     }
+  };
+
+  const handleMainSearch = async () => {
+    if (!searchId.trim()) {
+      toast.error("Please enter a valid proposal ID");
+      return;
+    }
+    router.push(`/proposals/${searchId.trim()}`);
   };
 
   return (
@@ -149,16 +165,10 @@ export default function Home() {
                   placeholder="Search proposal by ID..."
                   value={searchId}
                   onChange={(e) => setSearchId(e.target.value)}
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && !searching && handleSearch()
-                  }
+                  onKeyDown={(e) => e.key === "Enter" && handleMainSearch()}
                 />
-                <Button onClick={handleSearch} disabled={searching}>
-                  {searching ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Search className="h-4 w-4 mr-2" />
-                  )}
+                <Button onClick={handleMainSearch}>
+                  <Search className="h-4 w-4 mr-2" />
                   Search
                 </Button>
               </div>
@@ -241,53 +251,72 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Active Proposals Section */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-2">
               <h2 className="text-2xl font-bold tracking-tight">
-                {loading
-                  ? "Loading..."
-                  : proposals.length > 0
-                  ? "Active Proposals"
-                  : "No Active Proposals"}
+                Active Proposals
               </h2>
-              <p className="text-sm text-muted-foreground">
-                Total: {proposals.length} proposal(s)
-              </p>
+              <div className="w-1/3">
+                <Input
+                  placeholder="Search active proposals..."
+                  value={activeSearch}
+                  onChange={(e) => setActiveSearch(e.target.value)}
+                  className="w-full"
+                />
+              </div>
             </div>
-
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-            ) : proposals.length > 0 ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {proposals.map((proposal) => (
+            ) : activeProposals.length > 0 ? (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-h-[32rem] overflow-y-auto">
+                {activeProposals.map((proposal) => (
                   <ProposalCard key={proposal.id} proposal={proposal} />
                 ))}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
                 <Bot className="mb-4 h-12 w-12 text-muted-foreground" />
-                <h3 className="mb-2 text-xl font-medium">No proposals yet</h3>
-                <p className="mb-4 max-w-md text-center text-sm text-muted-foreground">
-                  There are no active proposals in the database. Click one of
-                  the buttons above to fetch proposals from Polkassembly or
-                  directly from the blockchain.
-                </p>
-                <div className="flex gap-2">
-                  <form action="/api/proposals" method="POST">
-                    <Button type="submit" className="gap-1">
-                      <RefreshCw className="h-4 w-4" />
-                      Fetch from Polkassembly
-                    </Button>
-                  </form>
-                  <form action="/api/polkadot/proposals" method="POST">
-                    <Button type="submit" variant="secondary" className="gap-1">
-                      <Cpu className="h-4 w-4" />
-                      Fetch On-Chain
-                    </Button>
-                  </form>
-                </div>
+                <h3 className="mb-2 text-xl font-medium">
+                  No active proposals
+                </h3>
+              </div>
+            )}
+          </div>
+
+          {/* Imported Proposals Section */}
+          <div className="space-y-4 mt-8">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-2xl font-bold tracking-tight">
+                Imported Proposals
+              </h2>
+              <div className="w-1/3">
+                <Input
+                  placeholder="Search imported proposals..."
+                  value={importedSearch}
+                  onChange={(e) => setImportedSearch(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+            </div>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : importedProposals.length > 0 ? (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-h-[32rem] overflow-y-auto">
+                {importedProposals.map((proposal) => (
+                  <ProposalCard key={proposal.id} proposal={proposal} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
+                <Bot className="mb-4 h-12 w-12 text-muted-foreground" />
+                <h3 className="mb-2 text-xl font-medium">
+                  No imported proposals
+                </h3>
               </div>
             )}
           </div>

@@ -107,7 +107,7 @@ export function ChatInterface({
           variant="outline"
           size="sm"
           onClick={handleRequestVote}
-          disabled={isVoting || messages.length < 2 || Boolean(proposal.vote)}
+          disabled={isVoting || messages?.length < 2 || Boolean(proposal.vote)}
         >
           {isVoting ? (
             <>
@@ -124,7 +124,7 @@ export function ChatInterface({
 
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
-          {messages.length === 0 ? (
+          {messages?.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center">
               <Bot className="mb-2 h-12 w-12 text-muted-foreground" />
               <p className="text-center text-sm text-muted-foreground">
@@ -132,7 +132,7 @@ export function ChatInterface({
               </p>
             </div>
           ) : (
-            messages.map((message, index) => (
+            messages?.map((message, index) => (
               <ChatMessageComponent key={index} message={message} />
             ))
           )}

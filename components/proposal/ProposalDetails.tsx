@@ -65,8 +65,8 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
         </TabsContent>
         <TabsContent value="chat" className="mt-4">
           <div className="space-y-4 rounded-md border bg-card p-4 shadow-sm">
-            {proposal.messages.length > 0 ? (
-              proposal.messages.map((message, index) => (
+            {proposal?.messages?.length > 0 ? (
+              proposal?.messages?.map((message, index) => (
                 <div key={index} className="border-b pb-3 last:border-0">
                   <div className="mb-1 flex items-center gap-2">
                     {message.role === "user" ? (

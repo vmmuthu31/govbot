@@ -141,7 +141,7 @@ export default function ProposalDetailPage({
     );
   }
 
-  const messages: ChatMessage[] = proposal.messages.map((message) => ({
+  const messages: ChatMessage[] = proposal?.messages?.map((message) => ({
     id: message.id,
     content: message.content,
     role: message.role as "user" | "assistant",
