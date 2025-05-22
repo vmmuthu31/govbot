@@ -21,7 +21,6 @@ export async function fetchProposalFromPolkassembly(
           signal: controller.signal,
         }
       );
-
       clearTimeout(timeoutId);
 
       if (!response.ok) {
