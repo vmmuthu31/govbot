@@ -208,6 +208,55 @@ class PolkadotService {
     }
   }
 
+  async getVotingPower(address: string): Promise<string> {
+    try {
+      const api = await this.initApi();
+      const accountInfo = (await api.query.system.account(
+        address
+      )) as AccountInfo;
+      const free = accountInfo.data.free.toString();
+      const dotAmount = Number(free) / 10_000_000_000;
+      return dotAmount.toString();
+    } catch (error) {
+      console.error("Error getting voting power:", error);
+      throw new Error(
+        "Failed to get voting power: " + (error as Error).message
+      );
+    }
+  }
+
+  async delegateVotingPower(
+    delegateAddress: string,
+    amount: string,
+    conviction: number = 1
+  ): Promise<string> {
+    try {
+      const api = await this.initApi();
+      await cryptoWaitReady();
+
+      const balance = BigInt(parseFloat(amount) * 10_000_000_000);
+      const tracks = [0];
+
+      const txs = tracks.map((track) =>
+        api.tx.convictionVoting.delegate(
+          track,
+          delegateAddress,
+          conviction,
+          balance.toString()
+        )
+      );
+
+      const tx = txs.length === 1 ? txs[0] : api.tx.utility.batchAll(txs);
+
+      return u8aToHex(tx.method.toU8a());
+    } catch (error) {
+      console.error("Error delegating voting power:", error);
+      throw new Error(
+        "Failed to delegate voting power: " + (error as Error).message
+      );
+    }
+  }
+
   async submitVote(
     referendumId: string,
     vote: "aye" | "nay" | "abstain",

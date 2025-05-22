@@ -81,7 +81,6 @@ export async function generateChatResponse(
   }
 }
 
-// Generate vote decision and reasoning
 export async function generateVoteDecision(
   proposal: ProposalWithMessages
 ): Promise<{ decision: VoteDecision; reasoning: string }> {
