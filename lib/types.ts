@@ -56,10 +56,16 @@ export interface RefCountedProposal {
   submitter: string;
   proposal: string;
   decisionDepositPlaced: boolean;
+  decisionDeposit?: {
+    who: string;
+    amount: string;
+  };
   tally: {
     ayes: string;
     nays: string;
   };
+  title?: string;
+  description?: string;
 }
 
 export interface OnChainVote {

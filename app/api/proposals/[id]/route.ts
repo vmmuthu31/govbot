@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchProposalFromPolkassembly } from "@/services/polkasembly";
+import { polkadotService } from "@/services/polkadot";
 
 export const GET = async (
   req: Request,
@@ -15,7 +15,7 @@ export const GET = async (
       );
     }
 
-    const proposal = await fetchProposalFromPolkassembly(id);
+    const proposal = await polkadotService.fetchProposalById(id);
 
     if (!proposal) {
       return NextResponse.json(

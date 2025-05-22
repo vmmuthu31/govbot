@@ -129,7 +129,10 @@ class PolkadotService {
             track: string | number;
             submissionDeposit: { who: string };
             submitted: string | number;
-            decisionDeposit?: unknown;
+            decisionDeposit?: {
+              who: string;
+              amount: string | number;
+            };
             tally: { ayes: string | number; nays: string | number };
           };
         };
@@ -139,8 +142,14 @@ class PolkadotService {
         }
 
         const ongoingInfo = info.ongoing;
-        const { proposal, track, submissionDeposit, submitted, tally } =
-          ongoingInfo;
+        const {
+          proposal,
+          track,
+          submissionDeposit,
+          submitted,
+          decisionDeposit,
+          tally,
+        } = ongoingInfo;
 
         proposals.push({
           id: refId,
@@ -148,7 +157,13 @@ class PolkadotService {
           submitted: String(submitted),
           submitter: submissionDeposit.who,
           proposal: JSON.stringify(proposal),
-          decisionDepositPlaced: !!ongoingInfo.decisionDeposit,
+          decisionDepositPlaced: !!decisionDeposit,
+          decisionDeposit: decisionDeposit
+            ? {
+                who: decisionDeposit.who,
+                amount: String(decisionDeposit.amount),
+              }
+            : undefined,
           tally: {
             ayes: String(tally.ayes),
             nays: String(tally.nays),
@@ -180,7 +195,10 @@ class PolkadotService {
           track: string | number;
           submissionDeposit: { who: string };
           submitted: string | number;
-          decisionDeposit?: unknown;
+          decisionDeposit?: {
+            who: string;
+            amount: string | number;
+          };
           tally: { ayes: string | number; nays: string | number };
         };
       };
@@ -199,6 +217,22 @@ class PolkadotService {
         tally,
       } = ongoingInfo;
 
+      let title: string | undefined;
+      let description: string | undefined;
+
+      try {
+        const { fetchProposalFromPolkassembly } = await import(
+          "@/services/polkasembly"
+        );
+        const polkassemblyData = await fetchProposalFromPolkassembly(
+          referendumId
+        );
+        title = polkassemblyData.title;
+        description = polkassemblyData.description;
+      } catch (polkassemblyError) {
+        console.warn("Failed to fetch from Polkassembly:", polkassemblyError);
+      }
+
       return {
         id: referendumId,
         track: String(track),
@@ -206,10 +240,18 @@ class PolkadotService {
         submitter: submissionDeposit.who,
         proposal: JSON.stringify(proposal),
         decisionDepositPlaced: !!decisionDeposit,
+        decisionDeposit: decisionDeposit
+          ? {
+              who: decisionDeposit.who,
+              amount: String(decisionDeposit.amount),
+            }
+          : undefined,
         tally: {
           ayes: String(tally.ayes),
           nays: String(tally.nays),
         },
+        title,
+        description,
       };
     } catch (error) {
       console.error("Error fetching proposal by id:", error);
