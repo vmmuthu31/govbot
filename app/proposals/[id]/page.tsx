@@ -56,7 +56,7 @@ export default function ProposalDetailPage({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          proposalId: proposal.id,
+          proposalId: proposal.chainId,
           conviction: 1,
         }),
       });
