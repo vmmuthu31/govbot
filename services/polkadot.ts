@@ -165,6 +165,60 @@ class PolkadotService {
     }
   }
 
+  /**
+   * Fetch a single on-chain proposal by its referendum ID
+   */
+  async fetchProposalById(
+    referendumId: string
+  ): Promise<RefCountedProposal | null> {
+    try {
+      const api = await this.initApi();
+      const optInfo = await api.query.referenda.referendumInfoFor(referendumId);
+      const info = optInfo.toJSON() as {
+        ongoing?: {
+          proposal: unknown;
+          track: string | number;
+          submissionDeposit: { who: string };
+          submitted: string | number;
+          decisionDeposit?: unknown;
+          tally: { ayes: string | number; nays: string | number };
+        };
+      };
+
+      if (!info?.ongoing) {
+        return null;
+      }
+
+      const ongoingInfo = info.ongoing;
+      const {
+        proposal,
+        track,
+        submissionDeposit,
+        submitted,
+        decisionDeposit,
+        tally,
+      } = ongoingInfo;
+
+      return {
+        id: referendumId,
+        track: String(track),
+        submitted: String(submitted),
+        submitter: submissionDeposit.who,
+        proposal: JSON.stringify(proposal),
+        decisionDepositPlaced: !!decisionDeposit,
+        tally: {
+          ayes: String(tally.ayes),
+          nays: String(tally.nays),
+        },
+      };
+    } catch (error) {
+      console.error("Error fetching proposal by id:", error);
+      throw new Error(
+        "Failed to fetch proposal by id: " + (error as Error).message
+      );
+    }
+  }
+
   async getGovBotVotingPower(): Promise<string> {
     try {
       const api = await this.initApi();
