@@ -1,4 +1,4 @@
-import { RootLayout } from "@/components/layout/root-layout";
+import { RootLayout } from "@/components/layout/RootLayout";
 import Link from "next/link";
 import { Bot, ExternalLink, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";

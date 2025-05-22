@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Bot, ChevronRight } from "lucide-react";
-import { DelegateButton } from "../polkadot/delegate-button";
+import { DelegateButton } from "../polkadot/DelegateButton";
 
 export function Header() {
   return (
