@@ -82,3 +82,14 @@ export interface PolkadotAccount {
   balance?: string;
   votingPower?: string;
 }
+
+export interface Post {
+  post_id?: string;
+  id?: string;
+  title?: string;
+  description?: string;
+  proposer?: string;
+  track_name?: string;
+  track?: string;
+  created_at?: string;
+}
