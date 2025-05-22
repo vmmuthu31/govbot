@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Proposal {
+  id          String    @id @default(uuid())
+  chainId     String    @unique 
+  title       String
+  description String
+  proposer    String
+  track       String?
+  status      String    @default("active") 
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  messages    Message[]
+  vote        Vote?
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  content    String
+  role       String 
+  createdAt  DateTime @default(now())
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  proposalId String
+}
+
+model Vote {
+  id         String   @id @default(uuid())
+  decision   String 
+  reasoning  String
+  conviction Int      @default(1)
+  votedAt    DateTime @default(now())
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  proposalId String   @unique
+}
