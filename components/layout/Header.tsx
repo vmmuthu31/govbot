@@ -1,8 +1,15 @@
+"use client";
+
 import Link from "next/link";
 import { Bot } from "lucide-react";
 import { DelegateButton } from "../polkadot/DelegateButton";
-import { WalletConnect } from "../wallet/WalletConnect";
-
+import dynamic from "next/dynamic";
+const WalletConnect = dynamic(
+  () => import("../wallet/WalletConnect").then((mod) => mod.WalletConnect),
+  {
+    ssr: false,
+  }
+);
 export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
