@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
+import ReactMarkdown from "react-markdown";
 
 interface ProposalCardProps {
   proposal: Proposal & {
@@ -32,7 +33,7 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
   };
 
   return (
-    <Card className="overflow-hidden transition-shadow hover:shadow-md">
+    <Card className="flex h-full flex-col overflow-hidden transition-shadow hover:shadow-md">
       <CardHeader className="bg-muted/20 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -55,12 +56,17 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
         </div>
         <CardTitle className="line-clamp-2 text-lg">{proposal.title}</CardTitle>
       </CardHeader>
-      <CardContent className="p-4">
-        <div className="line-clamp-3 text-sm text-muted-foreground">
-          {proposal.description.replace(/<[^>]*>?/gm, "")}
+      <CardContent className="flex-1 p-4">
+        <div
+          className="line-clamp-3 text-sm text-muted-foreground"
+          style={{ overflow: "hidden" }}
+        >
+          <ReactMarkdown>
+            {proposal.description.replace(/<[^>]*>?/gm, "")}
+          </ReactMarkdown>
         </div>
       </CardContent>
-      <CardFooter className="border-t bg-muted/10 p-4">
+      <CardFooter className="border-t bg-muted/10 p-4 mt-auto">
         <div className="flex w-full items-center justify-between">
           <span className="text-xs text-muted-foreground">
             Proposer: {proposal.proposer.slice(0, 6)}...

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { ScrollArea } from "../ui/scroll-area";
 import { ChatMessage as ChatMessageComponent } from "../chat/ChatMessage";
 import { formatDistanceToNow } from "@/utils/formatDistanceToNow";
+import ReactMarkdown from "react-markdown";
 
 interface ChatInterfaceProps {
   proposal: ProposalWithMessages;
@@ -157,15 +158,20 @@ export function ChatInterface({
           </div>
         </div>
         <div className="flex flex-1 items-center justify-center p-4">
-          <div className="text-center">
+          <div className="text-center max-w-full">
             {proposalStatus?.hasVote ? (
               <>
                 <h4 className="text-lg font-medium">
                   Voted: {proposalStatus.vote?.decision}
                 </h4>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {proposalStatus.vote?.reasoning}
-                </p>
+                <div className="prose prose-sm dark:prose-invert max-h-[450px] my-5 overflow-y-auto text-left mx-auto">
+                  <ReactMarkdown>
+                    {(proposalStatus.vote?.reasoning ?? "").length > 2000
+                      ? (proposalStatus.vote?.reasoning ?? "").slice(0, 2000) +
+                        "\n\n*Reasoning truncated due to length*"
+                      : proposalStatus.vote?.reasoning}
+                  </ReactMarkdown>
+                </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Voted{" "}
                   {formatDistanceToNow(
