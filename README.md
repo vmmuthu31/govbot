@@ -58,7 +58,3 @@ Pull requests and issues are welcome! Please open an issue to discuss your ideas
 MIT
 
 ---
-
-### GitHub Description
-
-> AI-powered governance agent for Polkadot OpenGov. Chat with the bot, convince it to vote, and see transparent, explainable on-chain decisions. Built with Next.js, Prisma, and Polkadot.js.
