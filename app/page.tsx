@@ -162,9 +162,15 @@ export default function Home() {
             <div className="flex flex-col items-center gap-6">
               <div className="flex max-w-md w-full mx-auto gap-2">
                 <Input
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   placeholder="Search proposal by ID..."
                   value={searchId}
-                  onChange={(e) => setSearchId(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "");
+                    setSearchId(val);
+                  }}
                   onKeyDown={(e) => e.key === "Enter" && handleMainSearch()}
                 />
                 <Button onClick={handleMainSearch}>

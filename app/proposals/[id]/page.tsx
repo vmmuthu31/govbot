@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { useRouter } from "next/navigation";
 import { RootLayout } from "@/components/layout/RootLayout";
 import { ProposalDetails } from "@/components/proposal/ProposalDetails";
 import { ChatInterface } from "@/components/chat/ChatInterface";
@@ -12,7 +11,6 @@ import {
   RefCountedProposal,
 } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
@@ -24,7 +22,6 @@ export default function ProposalDetailPage({
   params,
 }: ProposalDetailPageProps) {
   const { id } = use(params);
-  const router = useRouter();
   const [proposal, setProposal] = useState<ProposalWithMessages | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,52 +58,6 @@ export default function ProposalDetailPage({
 
     fetchProposal();
   }, [id]);
-
-  const handleRequestVote = async () => {
-    if (!proposal) return;
-
-    try {
-      const response = await fetch("/api/vote", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          proposalId: id,
-          conviction: 1,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to request vote");
-      }
-
-      const data = await response.json();
-
-      if (data.onChain) {
-        toast.success(
-          `GovBot has voted ${data.vote.decision} on this proposal and submitted the decision on-chain`
-        );
-      } else {
-        toast.success(
-          `GovBot has voted ${data.vote.decision} on this proposal`
-        );
-      }
-      setProposal((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          vote: data.vote,
-        };
-      });
-
-      router.refresh();
-    } catch (error) {
-      console.error("Error requesting vote:", error);
-      toast.error("Failed to request vote. Please try again.");
-    }
-  };
 
   if (loading) {
     return (
@@ -198,11 +149,7 @@ export default function ProposalDetailPage({
               <ProposalDetails proposal={proposal} />
             </div>
             <div className="md:col-span-2 space-y-8">
-              <ChatInterface
-                proposal={proposal}
-                initialMessages={messages}
-                onRequestVote={handleRequestVote}
-              />
+              <ChatInterface proposal={proposal} initialMessages={messages} />
               <OnChainInfo
                 proposal={proposal as unknown as RefCountedProposal}
               />

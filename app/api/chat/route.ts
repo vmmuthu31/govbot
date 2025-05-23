@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { generateChatResponse } from "@/services/ai";
+import { generateChatResponse, generateVoteDecision } from "@/services/ai";
 import { v4 as uuidv4 } from "uuid";
 import { polkadotService } from "@/services/polkadot";
 
@@ -127,6 +127,50 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    let vote = null;
+    if (!proposal.vote) {
+      const { decision, reasoning } = await generateVoteDecision({
+        ...proposal,
+        messages: [
+          ...proposal.messages,
+          {
+            id: userMessage.id,
+            content: userMessage.content,
+            role: "user",
+            createdAt: userMessage.createdAt,
+            proposalId: userMessage.proposalId,
+          },
+          {
+            id: assistantMessage.id,
+            content: assistantMessage.content,
+            role: "assistant",
+            createdAt: assistantMessage.createdAt,
+            proposalId: assistantMessage.proposalId,
+          },
+        ],
+      });
+      if (decision === "Aye" || decision === "Nay") {
+        vote = await prisma.vote.create({
+          data: {
+            id: uuidv4(),
+            decision,
+            reasoning,
+            conviction: 1,
+            proposalId: proposal.id,
+          },
+        });
+        const decisionMessage = `\nI've made my decision on this proposal.\n\n**Decision: ${decision}**\n\n${reasoning}\n\nThank you for engaging with me on this proposal. My vote has been recorded.`;
+        await prisma.message.create({
+          data: {
+            id: uuidv4(),
+            content: decisionMessage,
+            role: "assistant",
+            proposalId: proposal.id,
+          },
+        });
+      }
+    }
+
     return NextResponse.json({
       message: {
         id: assistantMessage.id,
@@ -134,6 +178,7 @@ export async function POST(req: NextRequest) {
         role: assistantMessage.role,
         createdAt: assistantMessage.createdAt,
       },
+      ...(vote ? { vote } : {}),
     });
   } catch (error) {
     console.error("Error in chat API:", error);

@@ -14,7 +14,6 @@ import ReactMarkdown from "react-markdown";
 interface ChatInterfaceProps {
   proposal: ProposalWithMessages;
   initialMessages: ChatMessage[];
-  onRequestVote: () => Promise<void>;
 }
 
 interface ProposalStatus {
@@ -30,14 +29,12 @@ interface ProposalStatus {
 export function ChatInterface({
   proposal,
   initialMessages,
-  onRequestVote,
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(
     Array.isArray(initialMessages) ? initialMessages : []
   );
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isVoting, setIsVoting] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(true);
   const [proposalStatus, setProposalStatus] = useState<ProposalStatus | null>(
     null
@@ -119,22 +116,6 @@ export function ChatInterface({
     }
   };
 
-  const handleRequestVote = async () => {
-    if (isVoting || isProposalLocked) return;
-
-    try {
-      setIsVoting(true);
-      await onRequestVote();
-      await checkProposalStatus();
-      toast.success("Vote request successful");
-    } catch (error) {
-      console.error("Error requesting vote:", error);
-      toast.error("Failed to request a vote. Please try again.");
-    } finally {
-      setIsVoting(false);
-    }
-  };
-
   const isProposalLocked = proposalStatus?.hasVote || !proposalStatus?.isActive;
 
   const getStatusMessage = () => {
@@ -198,30 +179,6 @@ export function ChatInterface({
           <Bot className="mr-2 h-5 w-5 text-primary" />
           <h3 className="text-sm font-medium">Chat with GovBot</h3>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRequestVote}
-          disabled={
-            isVoting ||
-            messages?.length < 2 ||
-            isProposalLocked ||
-            isCheckingStatus
-          }
-        >
-          {isVoting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Requesting Vote...
-            </>
-          ) : isCheckingStatus ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : proposalStatus?.hasVote ? (
-            `Voted: ${proposalStatus.vote?.decision}`
-          ) : (
-            "Request Vote"
-          )}
-        </Button>
       </div>
 
       <ScrollArea className="flex-1 p-4">
