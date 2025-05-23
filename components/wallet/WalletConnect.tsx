@@ -48,6 +48,16 @@ export function WalletConnect({
     useState<ConnectedWallet | null>(null);
   const [selectedWallet, setSelectedWallet] = useState<string>("");
 
+  // Check for browser environment on component mount
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      console.warn(
+        "Wallet connection is only available in browser environment"
+      );
+      return;
+    }
+  }, []);
+
   useEffect(() => {
     if (open) {
       checkAvailableWallets();

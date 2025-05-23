@@ -1,19 +1,14 @@
+// This must be the first thing in the file
 if (typeof window === "undefined") {
   throw new Error(
-    "services/wallet.ts must only be imported in a browser/client component. It cannot be used in SSR or API routes."
+    "services/wallet.ts must only be imported in a browser/client component. It cannot be used in SSR or API routes. Add 'use client' directive to any component that imports this module."
   );
 }
 
-import {
-  web3Accounts,
-  web3Enable,
-  web3FromAddress,
-} from "@polkadot/extension-dapp";
 import type {
   InjectedAccountWithMeta,
   InjectedExtension,
 } from "@polkadot/extension-inject/types";
-import type { SubmittableResult } from "@polkadot/api";
 
 export interface WalletAccount {
   address: string;
@@ -31,9 +26,9 @@ export interface ConnectedWallet {
 
 class WalletService {
   private static instance: WalletService;
+  private connectedWallet: ConnectedWallet | null = null;
   private extensions: InjectedExtension[] = [];
   private accounts: InjectedAccountWithMeta[] = [];
-  private connectedWallet: ConnectedWallet | null = null;
 
   private constructor() {}
 
@@ -48,9 +43,7 @@ class WalletService {
    * Check if browser has Polkadot.js extension or Subwallet installed
    */
   async getAvailableWallets(): Promise<string[]> {
-    if (typeof window === "undefined") {
-      return [];
-    }
+    if (typeof window === "undefined") return [];
 
     const injectedWeb3 = (
       window as unknown as { injectedWeb3?: Record<string, unknown> }
@@ -83,35 +76,35 @@ class WalletService {
     }
 
     try {
-      const extensions = await web3Enable("GovBot");
+      const { web3Enable, web3Accounts } = await import(
+        "@polkadot/extension-dapp"
+      );
 
-      if (extensions.length === 0) {
+      this.extensions = await web3Enable("GovBot");
+
+      if (this.extensions.length === 0) {
         throw new Error(
           "No wallet extension found. Please install Polkadot.js extension or Subwallet."
         );
       }
 
-      this.extensions = extensions;
+      this.accounts = await web3Accounts();
 
-      const accounts = await web3Accounts();
-
-      if (accounts.length === 0) {
+      if (this.accounts.length === 0) {
         throw new Error(
           "No accounts found. Please create an account in your wallet extension."
         );
       }
 
-      this.accounts = accounts;
-
-      let selectedExtension = extensions[0];
+      let selectedExtension = this.extensions[0];
       if (walletName) {
-        const found = extensions.find((ext) => ext.name === walletName);
+        const found = this.extensions.find((ext) => ext.name === walletName);
         if (found) {
           selectedExtension = found;
         }
       }
 
-      const walletAccounts = accounts
+      const walletAccounts = this.accounts
         .filter((account) => account.meta.source === selectedExtension.name)
         .map((account) => ({
           address: account.address,
@@ -160,6 +153,7 @@ class WalletService {
     }
 
     try {
+      const { web3FromAddress } = await import("@polkadot/extension-dapp");
       const injector = await web3FromAddress(address);
 
       if (!injector.signer) {
@@ -196,42 +190,7 @@ class WalletService {
     }
 
     try {
-      const injector = await web3FromAddress(address);
-
-      if (!injector.signer) {
-        throw new Error("Signer not available");
-      }
-
-      return new Promise((resolve, reject) => {
-        (
-          transaction as unknown as {
-            signAndSend: (
-              address: string,
-              options: { signer: unknown },
-              cb: (txResult: SubmittableResult) => void
-            ) => Promise<void>;
-          }
-        )
-          .signAndSend(
-            address,
-            { signer: injector.signer },
-            (txResult: SubmittableResult) => {
-              if (txResult.status.isInBlock) {
-                console.log(
-                  `Transaction included in block: ${txResult.status.asInBlock}`
-                );
-              } else if (txResult.status.isFinalized) {
-                console.log(
-                  `Transaction finalized: ${txResult.status.asFinalized}`
-                );
-                resolve(txResult.status.asFinalized.toString());
-              } else if (txResult.isError) {
-                reject(new Error("Transaction failed"));
-              }
-            }
-          )
-          .catch(reject);
-      });
+      return await this.signTransaction(address, transaction);
     } catch (error) {
       console.error("Error submitting transaction:", error);
       throw error;
@@ -242,21 +201,9 @@ class WalletService {
    * Disconnect wallet
    */
   disconnect(): void {
+    this.connectedWallet = null;
     this.extensions = [];
     this.accounts = [];
-    this.connectedWallet = null;
-  }
-
-  /**
-   * Check if a specific account can sign transactions
-   */
-  async canSign(address: string): Promise<boolean> {
-    try {
-      const injector = await web3FromAddress(address);
-      return !!injector.signer;
-    } catch {
-      return false;
-    }
   }
 }
 
