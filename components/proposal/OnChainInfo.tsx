@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import { RefCountedProposal } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, Clock, Users, Info } from "lucide-react";
+import { ExternalLink, Users, Info } from "lucide-react";
 import { Button } from "../ui/button";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { formatDistanceToNow } from "@/utils/formatDistanceToNow";
+import Link from "next/link";
 
 interface OnChainInfoProps {
   proposal?: RefCountedProposal | null;
@@ -96,14 +96,6 @@ export function OnChainInfo({ proposal }: OnChainInfoProps) {
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Submitted:</span>
-          <span className="flex items-center font-medium">
-            <Clock className="mr-1 h-3 w-3" />
-            {formatDistanceToNow(new Date(parseInt(proposal.submitted)))}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Decision Deposit:</span>
           <span className="font-medium">
             {proposal.decisionDepositPlaced ? "Placed" : "Not Placed"}
@@ -166,9 +158,13 @@ export function OnChainInfo({ proposal }: OnChainInfoProps) {
           {botAddress && (
             <div className="mt-2 text-xs text-muted-foreground">
               <span className="mr-1">Address:</span>
-              <code className="rounded bg-muted px-1 py-0.5">
+              <Link
+                href={`https://polkadot.subscan.io/account/${botAddress}`}
+                target="_blank"
+                className="rounded bg-muted px-1 py-0.5"
+              >
                 {botAddress.slice(0, 8)}...{botAddress.slice(-6)}
-              </code>
+              </Link>
             </div>
           )}
         </div>
