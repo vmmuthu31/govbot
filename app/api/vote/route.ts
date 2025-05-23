@@ -15,6 +15,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const isActive = await polkadotService.isProposalActive(proposalId);
+    if (!isActive) {
+      return NextResponse.json(
+        {
+          error:
+            "Cannot vote on inactive proposals. This proposal is no longer active.",
+        },
+        { status: 400 }
+      );
+    }
+
     let proposal = await prisma.proposal.findFirst({
       where: { chainId: proposalId },
       include: {

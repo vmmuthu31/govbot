@@ -13,7 +13,7 @@ import {
 } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
 interface ProposalDetailPageProps {
@@ -28,20 +28,32 @@ export default function ProposalDetailPage({
   const [proposal, setProposal] = useState<ProposalWithMessages | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProposal = async () => {
       try {
         const response = await fetch(`/api/proposals/${id}`);
         if (!response.ok) {
-          throw new Error("Failed to fetch proposal");
+          const data = await response.json();
+          if (response.status === 400 && data.status === "inactive") {
+            setError(data.error);
+            setErrorStatus("inactive");
+          } else {
+            throw new Error(data.error || "Failed to fetch proposal");
+          }
+          return;
         }
 
         const data = await response.json();
         setProposal(data.proposal);
       } catch (err) {
         console.error("Error fetching proposal:", err);
-        setError("Failed to load the proposal. Please try again.");
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load the proposal. Please try again."
+        );
       } finally {
         setLoading(false);
       }
@@ -133,11 +145,28 @@ export default function ProposalDetailPage({
               Back to proposals
             </Link>
             <div className="mt-8 flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
-              <h1 className="mb-2 text-xl font-medium">Error</h1>
+              <AlertTriangle className="mb-4 h-12 w-12 text-destructive" />
+              <h1 className="mb-2 text-xl font-medium text-destructive">
+                {errorStatus === "inactive" ? "Inactive Proposal" : "Error"}
+              </h1>
               <p className="text-muted-foreground">
                 {error ||
                   "Proposal not found. Please check the URL and try again."}
               </p>
+              {errorStatus === "inactive" && (
+                <p className="mt-4 text-sm text-muted-foreground">
+                  This proposal is no longer active. You can view it on{" "}
+                  <a
+                    href={`https://polkadot.polkassembly.io/referenda/${id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    Polkassembly
+                  </a>
+                  .
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -145,12 +174,13 @@ export default function ProposalDetailPage({
     );
   }
 
-  const messages: ChatMessage[] = proposal?.messages?.map((message) => ({
-    id: message.id,
-    content: message.content,
-    role: message.role as "user" | "assistant",
-    createdAt: message.createdAt,
-  }));
+  const messages: ChatMessage[] =
+    proposal?.messages?.map((message) => ({
+      id: message.id,
+      content: message.content,
+      role: message.role as "user" | "assistant",
+      createdAt: message.createdAt,
+    })) || [];
 
   return (
     <RootLayout>

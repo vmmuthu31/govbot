@@ -19,7 +19,10 @@ export const GET = async (
 
     if (!proposal) {
       return NextResponse.json(
-        { error: "Proposal not found" },
+        {
+          error: "This proposal is no longer active and cannot be voted on.",
+          status: "inactive",
+        },
         { status: 404 }
       );
     }

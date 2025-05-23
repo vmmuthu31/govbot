@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { v4 as uuidv4 } from "uuid";
 import { generateChatResponse } from "@/services/ai";
+import { v4 as uuidv4 } from "uuid";
+import { polkadotService } from "@/services/polkadot";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,6 +11,17 @@ export async function POST(req: NextRequest) {
     if (!proposalId || !message) {
       return NextResponse.json(
         { error: "Proposal ID and message are required" },
+        { status: 400 }
+      );
+    }
+
+    const isActive = await polkadotService.isProposalActive(proposalId);
+    if (!isActive) {
+      return NextResponse.json(
+        {
+          error:
+            "Cannot chat with inactive proposals. This proposal is no longer active.",
+        },
         { status: 400 }
       );
     }
@@ -23,7 +35,6 @@ export async function POST(req: NextRequest) {
     });
 
     if (!proposal) {
-      const { polkadotService } = await import("@/services/polkadot");
       const onChainProposal = await polkadotService.fetchProposalById(
         proposalId
       );
@@ -59,9 +70,13 @@ export async function POST(req: NextRequest) {
         { status: 404 }
       );
     }
+
     if (proposal.vote) {
       return NextResponse.json(
-        { error: "This proposal has already been voted on" },
+        {
+          error:
+            "This proposal has already been voted on. No further chat is possible.",
+        },
         { status: 400 }
       );
     }
