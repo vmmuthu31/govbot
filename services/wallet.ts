@@ -1,3 +1,9 @@
+if (typeof window === "undefined") {
+  throw new Error(
+    "services/wallet.ts must only be imported in a browser/client component. It cannot be used in SSR or API routes."
+  );
+}
+
 import {
   web3Accounts,
   web3Enable,

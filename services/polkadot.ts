@@ -304,6 +304,50 @@ class PolkadotService {
     }
   }
 
+  /**
+   * Check if a proposal is currently active based on its referendum ID
+   * @param referendumId The ID of the proposal to check
+   * @returns Promise<boolean> True if the proposal is active, false otherwise
+   */
+  async isProposalActive(referendumId: string): Promise<boolean> {
+    try {
+      const api = await this.initApi();
+      const optInfo = await api.query.referenda.referendumInfoFor(referendumId);
+      const info = optInfo.toJSON() as {
+        ongoing?: {
+          proposal: unknown;
+          track: string | number;
+          submissionDeposit: { who: string };
+          decisionDeposit?: {
+            who: string;
+            amount: string | number;
+          };
+        };
+        approved?: boolean;
+        rejected?: boolean;
+        cancelled?: boolean;
+        timedOut?: boolean;
+        killed?: boolean;
+      };
+
+      // A proposal is active if it has an ongoing status and hasn't been
+      // approved, rejected, cancelled, timed out, or killed
+      return (
+        !!info?.ongoing &&
+        !info.approved &&
+        !info.rejected &&
+        !info.cancelled &&
+        !info.timedOut &&
+        !info.killed
+      );
+    } catch (error) {
+      console.error("Error checking proposal status:", error);
+      throw new Error(
+        "Failed to check proposal status: " + (error as Error).message
+      );
+    }
+  }
+
   async getVotingPower(address: string): Promise<string> {
     try {
       const api = await this.initApi();

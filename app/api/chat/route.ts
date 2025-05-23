@@ -14,13 +14,44 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const proposal = await prisma.proposal.findUnique({
-      where: { id: proposalId },
+    let proposal = await prisma.proposal.findFirst({
+      where: { chainId: proposalId },
       include: {
         messages: true,
         vote: true,
       },
     });
+
+    if (!proposal) {
+      const { polkadotService } = await import("@/services/polkadot");
+      const onChainProposal = await polkadotService.fetchProposalById(
+        proposalId
+      );
+
+      if (!onChainProposal) {
+        return NextResponse.json(
+          { error: "Proposal not found on-chain" },
+          { status: 404 }
+        );
+      }
+
+      proposal = await prisma.proposal.create({
+        data: {
+          id: uuidv4(),
+          chainId: proposalId,
+          title: onChainProposal.title || `Referendum ${proposalId}`,
+          description:
+            onChainProposal.description || "No description available",
+          proposer: onChainProposal.submitter,
+          track: onChainProposal.track,
+          createdAt: new Date(),
+        },
+        include: {
+          messages: true,
+          vote: true,
+        },
+      });
+    }
 
     if (!proposal) {
       return NextResponse.json(

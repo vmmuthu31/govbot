@@ -8,6 +8,7 @@ import { ChatMessage, ProposalWithMessages } from "@/lib/types";
 import { toast } from "sonner";
 import { ScrollArea } from "../ui/scroll-area";
 import { ChatMessage as ChatMessageComponent } from "../chat/ChatMessage";
+import { formatDistanceToNow } from "@/utils/formatDistanceToNow";
 
 interface ChatInterfaceProps {
   proposal: ProposalWithMessages;
@@ -15,16 +16,53 @@ interface ChatInterfaceProps {
   onRequestVote: () => Promise<void>;
 }
 
+interface ProposalStatus {
+  hasVote: boolean;
+  isActive: boolean;
+  vote: {
+    decision: string;
+    reasoning: string;
+    votedAt: Date;
+  } | null;
+}
+
 export function ChatInterface({
   proposal,
   initialMessages,
   onRequestVote,
 }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+  const [messages, setMessages] = useState<ChatMessage[]>(
+    Array.isArray(initialMessages) ? initialMessages : []
+  );
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true);
+  const [proposalStatus, setProposalStatus] = useState<ProposalStatus | null>(
+    null
+  );
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const checkProposalStatus = async () => {
+    try {
+      setIsCheckingStatus(true);
+      const response = await fetch(`/api/proposals/status?id=${proposal.id}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch proposal status");
+      }
+      const status = await response.json();
+      setProposalStatus(status);
+    } catch (error) {
+      console.error("Error checking proposal status:", error);
+      toast.error("Failed to check proposal status");
+    } finally {
+      setIsCheckingStatus(false);
+    }
+  };
+
+  useEffect(() => {
+    checkProposalStatus();
+  }, [proposal.id]);
 
   useEffect(() => {
     if (bottomRef.current) {
@@ -33,7 +71,7 @@ export function ChatInterface({
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || isProposalLocked) return;
 
     try {
       setIsLoading(true);
@@ -64,7 +102,6 @@ export function ChatInterface({
       }
 
       const data = await response.json();
-
       setMessages((prevMessages) => [...prevMessages, data.message]);
     } catch (error) {
       console.error("Error sending message:", error);
@@ -82,11 +119,12 @@ export function ChatInterface({
   };
 
   const handleRequestVote = async () => {
-    if (isVoting) return;
+    if (isVoting || isProposalLocked) return;
 
     try {
       setIsVoting(true);
       await onRequestVote();
+      await checkProposalStatus();
       toast.success("Vote request successful");
     } catch (error) {
       console.error("Error requesting vote:", error);
@@ -95,6 +133,57 @@ export function ChatInterface({
       setIsVoting(false);
     }
   };
+
+  const isProposalLocked = proposalStatus?.hasVote || !proposalStatus?.isActive;
+
+  const getStatusMessage = () => {
+    if (isCheckingStatus) return "Checking proposal status...";
+    if (!proposalStatus?.isActive) return "This proposal is no longer active.";
+    if (proposalStatus?.hasVote)
+      return `Voted: ${proposalStatus.vote?.decision}`;
+    return null;
+  };
+
+  if (
+    !isCheckingStatus &&
+    (proposalStatus?.hasVote || !proposalStatus?.isActive)
+  ) {
+    return (
+      <div className="flex h-[600px] flex-col rounded-lg border bg-card text-card-foreground shadow">
+        <div className="flex items-center justify-between border-b px-4 py-2">
+          <div className="flex items-center">
+            <Bot className="mr-2 h-5 w-5 text-primary" />
+            <h3 className="text-sm font-medium">Chat with GovBot</h3>
+          </div>
+        </div>
+        <div className="flex flex-1 items-center justify-center p-4">
+          <div className="text-center">
+            {proposalStatus?.hasVote ? (
+              <>
+                <h4 className="text-lg font-medium">
+                  Voted: {proposalStatus.vote?.decision}
+                </h4>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {proposalStatus.vote?.reasoning}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Voted{" "}
+                  {formatDistanceToNow(
+                    new Date(proposalStatus.vote?.votedAt || "")
+                  )}{" "}
+                  ago
+                </p>
+              </>
+            ) : (
+              <p className="text-muted-foreground">
+                This proposal is no longer active
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[600px] flex-col rounded-lg border bg-card text-card-foreground shadow">
@@ -107,15 +196,22 @@ export function ChatInterface({
           variant="outline"
           size="sm"
           onClick={handleRequestVote}
-          disabled={isVoting || messages?.length < 2 || Boolean(proposal.vote)}
+          disabled={
+            isVoting ||
+            messages?.length < 2 ||
+            isProposalLocked ||
+            isCheckingStatus
+          }
         >
           {isVoting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Requesting Vote...
             </>
-          ) : proposal.vote ? (
-            `Voted: ${proposal.vote.decision}`
+          ) : isCheckingStatus ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : proposalStatus?.hasVote ? (
+            `Voted: ${proposalStatus.vote?.decision}`
           ) : (
             "Request Vote"
           )}
@@ -128,7 +224,9 @@ export function ChatInterface({
             <div className="flex h-full flex-col items-center justify-center">
               <Bot className="mb-2 h-12 w-12 text-muted-foreground" />
               <p className="text-center text-sm text-muted-foreground">
-                Start the conversation by introducing your proposal to GovBot.
+                {isCheckingStatus
+                  ? "Checking proposal status..."
+                  : "Start the conversation by introducing your proposal to GovBot."}
               </p>
             </div>
           ) : (
@@ -149,12 +247,14 @@ export function ChatInterface({
             placeholder="Type your message..."
             className="resize-none"
             rows={2}
-            disabled={isLoading || Boolean(proposal.vote)}
+            disabled={isLoading || isProposalLocked || isCheckingStatus}
           />
           <Button
             size="icon"
             onClick={sendMessage}
-            disabled={!input.trim() || isLoading || Boolean(proposal.vote)}
+            disabled={
+              !input.trim() || isLoading || isProposalLocked || isCheckingStatus
+            }
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -163,9 +263,9 @@ export function ChatInterface({
             )}
           </Button>
         </div>
-        {proposal.vote && (
+        {(isCheckingStatus || isProposalLocked) && (
           <p className="mt-2 text-xs text-muted-foreground">
-            This proposal has been voted on. The conversation is now closed.
+            {getStatusMessage()}
           </p>
         )}
       </div>
