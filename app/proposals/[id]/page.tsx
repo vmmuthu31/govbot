@@ -144,11 +144,11 @@ export default function ProposalDetailPage({
             <ArrowLeft className="mr-1 h-4 w-4" />
             Back to proposals
           </Link>
-          <div className="grid gap-8 md:grid-cols-5">
-            <div className="md:col-span-3">
+          <div className="grid gap-8 md:grid-cols-5 grid-cols-1">
+            <div className="md:col-span-3 col-span-1 order-1">
               <ProposalDetails proposal={proposal} />
             </div>
-            <div className="md:col-span-2 space-y-8">
+            <div className="md:col-span-2 col-span-1 order-2 space-y-8">
               <ChatInterface proposal={proposal} initialMessages={messages} />
               <OnChainInfo
                 proposal={proposal as unknown as RefCountedProposal}
