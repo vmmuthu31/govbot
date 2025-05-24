@@ -8,7 +8,10 @@ export async function GET() {
     return NextResponse.json({
       address: process.env.POLKADOT_BOT_ADDRESS,
       votingPower,
-      formatted: `${parseFloat(votingPower).toLocaleString()} DOT`,
+      formatted: `${new Intl.NumberFormat("en", {
+        notation: "compact",
+        maximumFractionDigits: 1,
+      }).format(parseFloat(votingPower))} DOT`,
     });
   } catch (error) {
     console.error("Error getting voting power:", error);

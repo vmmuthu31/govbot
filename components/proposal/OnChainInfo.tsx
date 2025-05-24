@@ -63,7 +63,11 @@ export function OnChainInfo({ proposal }: OnChainInfoProps) {
 
   const formatDOT = (value: string) => {
     const amount = parseInt(value) / 10_000_000_000;
-    return `${amount.toLocaleString()} DOT`;
+    const formatter = new Intl.NumberFormat("en", {
+      notation: "compact",
+      maximumFractionDigits: 1,
+    });
+    return `${formatter.format(amount)} DOT`;
   };
 
   const ayeVotes = formatDOT(proposal.tally.ayes);
