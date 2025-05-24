@@ -3,6 +3,7 @@ import prisma from "@/lib/db";
 import { generateChatResponse, generateVoteDecision } from "@/services/ai";
 import { v4 as uuidv4 } from "uuid";
 import { polkadotService } from "@/services/polkadot";
+import { validateVoteReadiness } from "@/lib/vote-validation";
 
 export async function POST(req: NextRequest) {
   try {
@@ -151,25 +152,41 @@ export async function POST(req: NextRequest) {
     let vote = null;
     let txHash = null;
     if (!proposal.vote) {
+      // Add validation check before generating vote decision
+      const allMessages = [
+        ...proposal.messages,
+        {
+          id: userMessage.id,
+          content: userMessage.content,
+          role: "user",
+          createdAt: userMessage.createdAt,
+          proposalId: userMessage.proposalId,
+        },
+        {
+          id: assistantMessage.id,
+          content: assistantMessage.content,
+          role: "assistant",
+          createdAt: assistantMessage.createdAt,
+          proposalId: assistantMessage.proposalId,
+        },
+      ];
+
+      const validation = validateVoteReadiness(allMessages);
+
+      if (!validation.canVote) {
+        return NextResponse.json({
+          message: {
+            id: assistantMessage.id,
+            content: assistantMessage.content + "\n\n" + validation.reason,
+            role: assistantMessage.role,
+            createdAt: assistantMessage.createdAt,
+          },
+        });
+      }
+
       const { decision, reasoning } = await generateVoteDecision({
         ...proposal,
-        messages: [
-          ...proposal.messages,
-          {
-            id: userMessage.id,
-            content: userMessage.content,
-            role: "user",
-            createdAt: userMessage.createdAt,
-            proposalId: userMessage.proposalId,
-          },
-          {
-            id: assistantMessage.id,
-            content: assistantMessage.content,
-            role: "assistant",
-            createdAt: assistantMessage.createdAt,
-            proposalId: assistantMessage.proposalId,
-          },
-        ],
+        messages: allMessages,
       });
       if (decision === "Aye" || decision === "Nay") {
         const testBalance = "100000000";
