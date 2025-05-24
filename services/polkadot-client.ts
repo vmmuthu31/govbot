@@ -4,8 +4,6 @@ import { cryptoWaitReady } from "@polkadot/util-crypto";
 import type { WalletAccount } from "@/services/wallet";
 import { web3FromAddress } from "@polkadot/extension-dapp";
 
-const wsProvider = new WsProvider("wss://rpc.polkadot.io");
-
 /**
  * Client-side Polkadot service for browser wallet integration
  * This service contains only browser-compatible functionality
@@ -42,6 +40,8 @@ class PolkadotClientService {
   ): Promise<string> {
     try {
       await cryptoWaitReady();
+
+      const wsProvider = new WsProvider("wss://rpc.polkadot.io");
       const api = await ApiPromise.create({ provider: wsProvider });
 
       const injector = await web3FromAddress(selectedAccount.address);
@@ -109,6 +109,7 @@ class PolkadotClientService {
    */
   async getVotingPower(address: string): Promise<string> {
     try {
+      const wsProvider = new WsProvider("wss://rpc.polkadot.io");
       const api = await ApiPromise.create({ provider: wsProvider });
 
       const accountInfo = await api.query.system.account(address);

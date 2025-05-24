@@ -3,9 +3,15 @@
 
 import { useState } from "react";
 import { Vote, UsersRound, ExternalLink, Loader2 } from "lucide-react";
-import { type WalletAccount } from "@/services/wallet";
-import { WalletConnect } from "@/components/wallet/WalletConnect";
-import { polkadotClientService } from "@/services/polkadot-client";
+import dynamic from "next/dynamic";
+
+const WalletConnect = dynamic(
+  () => import("../wallet/WalletConnect").then((mod) => mod.WalletConnect),
+  {
+    ssr: false,
+  }
+);
+
 import {
   Dialog,
   DialogContent,
@@ -33,9 +39,7 @@ export function DelegateButton() {
   const [conviction, setConviction] = useState("1");
   const [loading, setLoading] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [selectedAccount, setSelectedAccount] = useState<WalletAccount | null>(
-    null
-  );
+  const [selectedAccount, setSelectedAccount] = useState<any>(null);
 
   const tracks = [0, 2, 34, 33, 32, 31, 30, 11, 1, 10, 12, 13, 14, 15, 20, 21];
 
@@ -52,6 +56,10 @@ export function DelegateButton() {
 
     try {
       setLoading(true);
+
+      const { polkadotClientService } = await import(
+        "../../services/polkadot-client"
+      );
 
       const delegateAddress =
         process.env.NEXT_PUBLIC_POLKADOT_BOT_ADDRESS ||
