@@ -205,7 +205,7 @@ class PolkadotService {
           id: refId,
           track: String(track),
           submitted: String(submitted),
-          submitter: submissionDeposit.who,
+          proposer: submissionDeposit.who,
           proposal: JSON.stringify(proposal),
           decisionDepositPlaced: !!decisionDeposit,
           decisionDeposit: decisionDeposit
@@ -290,7 +290,7 @@ class PolkadotService {
         id: referendumId,
         track: String(track),
         submitted: String(submitted),
-        submitter: submissionDeposit.who,
+        proposer: submissionDeposit.who,
         proposal: JSON.stringify(proposal),
         decisionDepositPlaced: !!decisionDeposit,
         decisionDeposit: decisionDeposit

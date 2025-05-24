@@ -53,7 +53,7 @@ export interface RefCountedProposal {
   id: string;
   track: string;
   submitted: string;
-  submitter: string;
+  proposer: string;
   proposal: string;
   decisionDepositPlaced: boolean;
   decisionDeposit?: {

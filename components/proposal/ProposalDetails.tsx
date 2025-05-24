@@ -34,7 +34,10 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
         <h1 className="text-2xl font-bold">{proposal.title}</h1>
         <div className="flex items-center gap-1 text-sm text-muted-foreground">
           <User className="h-4 w-4" />
-          <span>Proposer: {proposal.proposer}</span>
+          <span>
+            Proposer: {proposal.proposer.slice(0, 6)}...
+            {proposal.proposer.slice(-6)}
+          </span>
         </div>
         <div className="flex gap-2">
           <a

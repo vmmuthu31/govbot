@@ -51,7 +51,7 @@ export async function POST() {
             chainId: proposal.id,
             title: `Referendum #${proposal.id}`,
             description: `On-chain proposal on track ${proposal.track}. Details: ${proposal.proposal}`,
-            proposer: proposal.submitter,
+            proposer: proposal.proposer,
             track: proposal.track,
             createdAt: new Date(parseInt(proposal.submitted)).toISOString(),
           };
