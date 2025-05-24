@@ -64,8 +64,30 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
           <TabsTrigger value="chat">Chat History</TabsTrigger>
         </TabsList>
         <TabsContent value="details" className="mt-4">
-          <div className="prose prose-sm dark:prose-invert max-w-none rounded-md border bg-card p-4 shadow-sm">
-            <ReactMarkdown>{proposal.description}</ReactMarkdown>
+          <div className="prose prose-sm dark:prose-invert max-w-none rounded-md border bg-card p-4 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <ReactMarkdown
+                components={{
+                  pre: (props) => (
+                    <pre
+                      className="overflow-x-auto whitespace-pre-wrap break-words"
+                      {...props}
+                    />
+                  ),
+                  code: (props) => (
+                    <code
+                      className="break-all whitespace-pre-wrap"
+                      {...props}
+                    />
+                  ),
+                  p: (props) => (
+                    <p className="break-words whitespace-pre-wrap" {...props} />
+                  ),
+                }}
+              >
+                {proposal.description}
+              </ReactMarkdown>
+            </div>
           </div>
         </TabsContent>
         <TabsContent value="chat" className="mt-4">
