@@ -1,7 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState } from "react";
 import { Vote, UsersRound, ExternalLink, Loader2 } from "lucide-react";
+import { type WalletAccount } from "@/services/wallet";
+import { WalletConnect } from "@/components/wallet/WalletConnect";
+import { polkadotClientService } from "@/services/polkadot-client";
 import {
   Dialog,
   DialogContent,
@@ -25,45 +29,51 @@ import { toast } from "sonner";
 
 export function DelegateButton() {
   const [open, setOpen] = useState(false);
-  const [address, setAddress] = useState("");
   const [amount, setAmount] = useState("");
   const [conviction, setConviction] = useState("1");
   const [loading, setLoading] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<WalletAccount | null>(
+    null
+  );
+
+  const tracks = [0, 2, 34, 33, 32, 31, 30, 11, 1, 10, 12, 13, 14, 15, 20, 21];
 
   const handleDelegate = async () => {
-    if (!address || !amount) {
-      toast.error("Please fill in all required fields");
+    if (!selectedAccount) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    if (!amount) {
+      toast.error("Please enter an amount to delegate");
       return;
     }
 
     try {
       setLoading(true);
 
-      const response = await fetch("/api/polkadot/voting-power", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          address,
-          amount,
-          conviction: parseInt(conviction),
-        }),
-      });
+      const delegateAddress =
+        process.env.NEXT_PUBLIC_POLKADOT_BOT_ADDRESS ||
+        "1FN1XvRXhVBfWN6mxHyUsWsGLjrHqFM6RvJZVRp1UvXH3HU";
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delegate voting power");
-      }
+      const txHash = await polkadotClientService.delegateVotingPowerClient(
+        selectedAccount,
+        amount,
+        parseInt(conviction),
+        delegateAddress,
+        tracks
+      );
 
-      const data = await response.json();
-      setTxHash(data.txHash);
-
-      toast.success("Delegation transaction prepared successfully");
+      setTxHash(txHash);
+      toast.success("Delegation transaction submitted successfully!");
     } catch (error) {
       console.error("Error delegating voting power:", error);
-      toast.error("Failed to delegate voting power");
+      toast.error(
+        `Failed to delegate voting power: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
       setLoading(false);
     }
@@ -71,7 +81,6 @@ export function DelegateButton() {
 
   const handleClose = () => {
     setOpen(false);
-    setAddress("");
     setAmount("");
     setConviction("1");
     setTxHash(null);
@@ -96,22 +105,24 @@ export function DelegateButton() {
 
         {txHash ? (
           <div className="space-y-4 py-4">
-            <div className="rounded-md bg-primary/10 p-4">
-              <h4 className="mb-2 font-medium">Transaction Created</h4>
-              <p className="text-sm text-muted-foreground">
-                Your delegation transaction has been prepared. In a production
-                system, this would be sent directly to your wallet for signing.
+            <div className="rounded-md bg-green-50 border border-green-200 p-4 dark:bg-green-950 dark:border-green-800">
+              <h4 className="mb-2 font-medium text-green-800 dark:text-green-200">
+                Transaction Submitted Successfully
+              </h4>
+              <p className="text-sm text-green-700 dark:text-green-300">
+                Your delegation transaction has been submitted to the Polkadot
+                network.
               </p>
-              <div className="mt-3 flex items-center">
-                <Label className="text-xs">Transaction Hash:</Label>
-                <code className="ml-2 overflow-hidden text-ellipsis rounded-md bg-muted px-2 py-1 text-xs">
-                  {txHash.slice(0, 10)}...{txHash.slice(-8)}
-                </code>
-              </div>
-            </div>
-
-            <div className="rounded-md bg-muted/50 p-2 text-center text-sm text-muted-foreground">
-              <p>Note: This is a demo. No actual transaction is being sent.</p>
+              {txHash !== "Transaction completed successfully" && (
+                <div className="mt-3 flex items-center">
+                  <Label className="text-xs text-green-700 dark:text-green-300">
+                    Transaction Hash:
+                  </Label>
+                  <code className="ml-2 overflow-hidden text-ellipsis rounded-md bg-green-100 dark:bg-green-900 px-2 py-1 text-xs">
+                    {txHash.slice(0, 10)}...{txHash.slice(-8)}
+                  </code>
+                </div>
+              )}
             </div>
 
             <DialogFooter>
@@ -121,13 +132,17 @@ export function DelegateButton() {
         ) : (
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="address">Your Polkadot Address</Label>
-              <Input
-                id="address"
-                placeholder="5..."
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
+              <Label>Connected Wallet</Label>
+              <WalletConnect
+                onAccountSelected={setSelectedAccount}
+                selectedAccount={selectedAccount}
               />
+              {selectedAccount && (
+                <p className="text-xs text-muted-foreground">
+                  Using: {selectedAccount.name || "Unnamed Account"} (
+                  {selectedAccount.address.slice(0, 8)}...)
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -188,12 +203,18 @@ export function DelegateButton() {
             </div>
 
             <DialogFooter>
-              <Button type="submit" onClick={handleDelegate} disabled={loading}>
+              <Button
+                type="submit"
+                onClick={handleDelegate}
+                disabled={loading || !selectedAccount}
+              >
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Delegating...
                   </>
+                ) : !selectedAccount ? (
+                  "Connect Wallet First"
                 ) : (
                   "Delegate"
                 )}

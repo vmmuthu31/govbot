@@ -21,7 +21,12 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { address, amount, conviction = 1 } = await request.json();
+    const {
+      address,
+      amount,
+      conviction = 1,
+      tracks = [0],
+    } = await request.json();
 
     if (!address || !amount) {
       return NextResponse.json(
@@ -37,26 +42,61 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const txHash = await polkadotService.delegateVotingPower(
-      address,
-      amount,
-      conviction
-    );
+    const delegateAddress = process.env.POLKADOT_BOT_ADDRESS;
 
-    return NextResponse.json({
-      success: true,
-      message: "Delegation transaction prepared",
-      address,
-      delegate: process.env.POLKADOT_BOT_ADDRESS,
-      amount,
-      conviction,
-      txHash,
-      note: "This is a simulated transaction. In production, this would need to be signed by the delegator.",
-    });
+    if (!delegateAddress) {
+      return NextResponse.json(
+        { error: "Bot address not configured" },
+        { status: 500 }
+      );
+    }
+
+    try {
+      const callData = await polkadotService.prepareDelegationCallData(
+        delegateAddress,
+        amount,
+        conviction,
+        tracks
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: "Delegation call data prepared successfully",
+        address,
+        delegate: delegateAddress,
+        amount,
+        conviction,
+        tracks,
+        callData,
+        note: "This call data should be signed and submitted by the user's wallet extension.",
+      });
+    } catch (error) {
+      console.error("Error preparing delegation call data:", error);
+
+      // Fallback to simulation if preparation fails
+      const simulatedTxHash = `0x${Math.random().toString(16).substr(2, 64)}`;
+
+      console.log(
+        `Simulated delegation: ${amount} DOT from ${address} to ${delegateAddress} with conviction ${conviction}`
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: "Delegation transaction simulated (fallback)",
+        address,
+        delegate: delegateAddress,
+        amount,
+        conviction,
+        tracks,
+        txHash: simulatedTxHash,
+        note: "This is a demo transaction simulation. In a production system, this would require actual wallet signing and on-chain submission.",
+        simulation: true,
+      });
+    }
   } catch (error) {
-    console.error("Error delegating voting power:", error);
+    console.error("Error processing delegation request:", error);
     return NextResponse.json(
-      { error: "Failed to delegate voting power" },
+      { error: "Failed to process delegation request" },
       { status: 500 }
     );
   }

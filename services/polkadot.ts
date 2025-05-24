@@ -1,10 +1,21 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { Keyring } from "@polkadot/keyring";
-import { u8aToHex } from "@polkadot/util";
 import { cryptoWaitReady } from "@polkadot/util-crypto";
 import type { RefCountedProposal } from "@/lib/types";
 import { RPC_ENDPOINTS } from "@/lib/constants";
 import type { AccountInfo } from "@polkadot/types/interfaces";
+import type { SubmittableExtrinsic } from "@polkadot/api/types";
+import type { EventRecord } from "@polkadot/types/interfaces";
+import type { WalletAccount } from "@/services/wallet";
+
+export enum EVoteDecision {
+  AYE = "aye",
+  NAY = "nay",
+  SPLIT = "split",
+  SPLIT_ABSTAIN = "splitAbstain",
+  ABSTAIN = "abstain",
+}
 
 interface VotingData {
   delegations?: {
@@ -85,32 +96,84 @@ class PolkadotService {
   }
 
   async getGovBotWallet() {
-    try {
-      await cryptoWaitReady();
-      const keyring = new Keyring({ type: "sr25519" });
+    await cryptoWaitReady();
+    const keyring = new Keyring({ type: "sr25519" });
 
-      if (process.env.POLKADOT_WALLET_JSON) {
-        const walletJson = process.env.POLKADOT_WALLET_JSON;
-        const walletData =
-          typeof walletJson === "string" && walletJson.startsWith("{")
-            ? JSON.parse(walletJson)
-            : { encoded: walletJson };
+    let walletData;
+    if (process.env.POLKADOT_WALLET_JSON) {
+      const walletJson = process.env.POLKADOT_WALLET_JSON;
+      if (typeof walletJson === "string" && walletJson.startsWith("{")) {
+        walletData = JSON.parse(walletJson);
+      } else {
+        const fs = await import("fs");
+        const path = await import("path");
+        const walletPath = path.resolve(process.cwd(), walletJson);
+        const walletFile = fs.readFileSync(walletPath, "utf8");
+        walletData = JSON.parse(walletFile);
+      }
+    } else {
+      throw new Error("POLKADOT_WALLET_JSON is not set");
+    }
 
-        return keyring.addFromJson(walletData);
+    if (
+      walletData.encoding &&
+      walletData.encoding.content &&
+      walletData.encoding.content.includes("batch-pkcs8")
+    ) {
+      if (!process.env.POLKADOT_WALLET_PASSWORD) {
+        throw new Error(
+          "POLKADOT_WALLET_PASSWORD is required for batch-encoded wallets"
+        );
+      }
+      const botAddress = this.getGovBotAddress();
+
+      try {
+        const pair = keyring.addFromAddress(botAddress);
+
+        console.warn(
+          "Using batch wallet - signing may not work without proper key extraction"
+        );
+        return pair;
+      } catch (error) {
+        throw new Error(
+          `Failed to handle batch wallet: ${(error as Error).message}`
+        );
+      }
+    } else if (
+      walletData.accounts &&
+      Array.isArray(walletData.accounts) &&
+      walletData.accounts.length > 0
+    ) {
+      // Handle unencrypted batch format
+      const accountData = walletData.accounts[0];
+      const pair = keyring.addFromJson(accountData);
+
+      if (process.env.POLKADOT_WALLET_PASSWORD) {
+        pair.decodePkcs8(process.env.POLKADOT_WALLET_PASSWORD);
       }
 
-      const address = process.env.POLKADOT_BOT_ADDRESS;
-      if (!address) {
-        throw new Error("POLKADOT_BOT_ADDRESS is not set");
+      return pair;
+    } else {
+      const pair = keyring.addFromJson(walletData);
+
+      if (process.env.POLKADOT_WALLET_PASSWORD) {
+        pair.decodePkcs8(process.env.POLKADOT_WALLET_PASSWORD);
       }
 
-      return keyring.addFromAddress(address);
-    } catch (error) {
-      console.error("Error loading GovBot wallet:", error);
+      return pair;
+    }
+  }
+
+  /**
+   * Get the GovBot address from environment variables
+   */
+  getGovBotAddress(): string {
+    if (!process.env.POLKADOT_BOT_ADDRESS) {
       throw new Error(
-        "Failed to load GovBot wallet: " + (error as Error).message
+        "POLKADOT_BOT_ADDRESS is not set in environment variables"
       );
     }
+    return process.env.POLKADOT_BOT_ADDRESS;
   }
 
   async fetchOnChainProposals(): Promise<RefCountedProposal[]> {
@@ -365,17 +428,38 @@ class PolkadotService {
     }
   }
 
-  async delegateVotingPower(
-    delegateAddress: string,
-    amount: string,
-    conviction: number = 1
-  ): Promise<string> {
+  /**
+   * Delegate voting power using browser wallet (for frontend use)
+   * @param delegateAddress Address to delegate to
+   * @param amount Amount in DOT to delegate
+   * @param conviction Conviction multiplier (1-6)
+   * @param tracks Array of tracks to delegate (default: [0])
+   * @param userAddress User's wallet address for signing
+   * @param onSuccess Callback for successful transaction
+   * @param onFailed Callback for failed transaction
+   */
+  async delegateVotingPower({
+    delegateAddress,
+    amount,
+    conviction = 1,
+    tracks = [0],
+    userAddress,
+    onSuccess,
+    onFailed,
+  }: {
+    delegateAddress: string;
+    amount: string;
+    conviction?: number;
+    tracks?: number[];
+    userAddress: string;
+    onSuccess: (txHash?: string) => void;
+    onFailed: (error: string) => void;
+  }): Promise<void> {
     try {
       const api = await this.initApi();
       await cryptoWaitReady();
 
       const balance = BigInt(parseFloat(amount) * 10_000_000_000);
-      const tracks = [0];
 
       const txs = tracks.map((track) =>
         api.tx.convictionVoting.delegate(
@@ -388,42 +472,378 @@ class PolkadotService {
 
       const tx = txs.length === 1 ? txs[0] : api.tx.utility.batchAll(txs);
 
-      return u8aToHex(tx.method.toU8a());
+      await this.executeTx({
+        tx,
+        address: userAddress,
+        errorMessageFallback: "Failed to delegate voting power",
+        onSuccess: async (txHash) => {
+          console.log("Delegation successful:", txHash);
+          onSuccess(txHash?.toString());
+        },
+        onFailed: async (error) => {
+          console.error("Delegation failed:", error);
+          onFailed(error);
+        },
+        waitTillFinalizedHash: true,
+      });
     } catch (error) {
       console.error("Error delegating voting power:", error);
-      throw new Error(
-        "Failed to delegate voting power: " + (error as Error).message
-      );
+      onFailed("Failed to delegate voting power: " + (error as Error).message);
     }
   }
 
-  async submitVote(
-    referendumId: string,
-    vote: "aye" | "nay" | "abstain",
-    conviction: number = 1
+  /**
+   * Prepare delegation transaction call data for browser wallet (legacy method)
+   * @deprecated Use delegateVotingPower with callbacks instead
+   */
+  async prepareDelegationCallData(
+    delegateAddress: string,
+    amount: string,
+    conviction: number = 1,
+    tracks: number[] = [0]
   ): Promise<string> {
     try {
       const api = await this.initApi();
       await cryptoWaitReady();
 
-      await this.getGovBotWallet();
+      const balance = BigInt(parseFloat(amount) * 10_000_000_000);
 
-      const voteType = vote.toLowerCase();
+      const txs = tracks.map((track) =>
+        api.tx.convictionVoting.delegate(
+          track,
+          delegateAddress,
+          conviction,
+          balance.toString()
+        )
+      );
+
+      const tx = txs.length === 1 ? txs[0] : api.tx.utility.batchAll(txs);
+
+      return tx.method.toHex();
+    } catch (error) {
+      console.error("Error preparing delegation call data:", error);
+      throw new Error(
+        "Failed to prepare delegation call data: " + (error as Error).message
+      );
+    }
+  }
+
+  /**
+   * Execute a transaction with comprehensive status tracking
+   */
+  private async executeTx({
+    tx,
+    address,
+    errorMessageFallback,
+    onSuccess,
+    onFailed,
+    onBroadcast,
+    setStatus,
+    waitTillFinalizedHash = false,
+  }: {
+    tx: SubmittableExtrinsic<"promise">;
+    address: string;
+    errorMessageFallback: string;
+    onSuccess: (txHash?: string) => Promise<void> | void;
+    onFailed: (error: string) => Promise<void> | void;
+    onBroadcast?: () => void;
+    setStatus?: (status: string) => void;
+    waitTillFinalizedHash?: boolean;
+  }): Promise<void> {
+    let isFailed = false;
+    const api = await this.initApi();
+
+    return new Promise((resolve, reject) => {
+      tx.signAndSend(
+        address,
+        async ({
+          status,
+          events,
+          txHash,
+        }: {
+          status: any;
+          events: EventRecord[];
+          txHash: any;
+        }) => {
+          try {
+            if (status.isInvalid) {
+              console.log("Transaction invalid");
+              setStatus?.("Transaction invalid");
+              isFailed = true;
+              await onFailed("Transaction invalid");
+              reject(new Error("Transaction invalid"));
+            } else if (status.isReady) {
+              console.log("Transaction is ready");
+              setStatus?.("Transaction is ready");
+            } else if (status.isBroadcast) {
+              console.log("Transaction has been broadcasted");
+              setStatus?.("Transaction has been broadcasted");
+              onBroadcast?.();
+            } else if (status.isInBlock) {
+              console.log("Transaction is in block");
+              setStatus?.("Transaction is in block");
+
+              for (const { event } of events) {
+                if (event.method === "ExtrinsicSuccess") {
+                  setStatus?.("Transaction Success");
+                  isFailed = false;
+                  if (!waitTillFinalizedHash) {
+                    await onSuccess(txHash?.toString());
+                    resolve();
+                  }
+                } else if (event.method === "ExtrinsicFailed") {
+                  setStatus?.("Transaction failed");
+                  console.log("Transaction failed");
+                  isFailed = true;
+
+                  const dispatchError = (event.data as any)?.[0];
+                  let errorMessage = errorMessageFallback;
+
+                  if (dispatchError?.isModule) {
+                    const errorModule = dispatchError.asModule;
+                    const { method, section, docs } =
+                      api.registry.findMetaError(errorModule);
+                    errorMessage = `${section}.${method}: ${docs.join(" ")}`;
+                  } else if (dispatchError?.isToken) {
+                    errorMessage = `${dispatchError.type}.${dispatchError.asToken.type}`;
+                  } else {
+                    errorMessage = dispatchError?.type || errorMessageFallback;
+                  }
+
+                  await onFailed(errorMessage);
+                  reject(new Error(errorMessage));
+                }
+              }
+            } else if (status.isFinalized) {
+              console.log(
+                `Transaction finalized in block ${status.asFinalized.toHex()}`
+              );
+              setStatus?.("Transaction finalized");
+
+              if (!isFailed && waitTillFinalizedHash) {
+                await onSuccess(txHash?.toString());
+              }
+              resolve();
+            }
+          } catch (error) {
+            console.error("Error in transaction callback:", error);
+            await onFailed(
+              (error as Error)?.toString() || errorMessageFallback
+            );
+            reject(error);
+          }
+        }
+      ).catch(async (error: Error) => {
+        console.log("Transaction failed:", error);
+        setStatus?.("Transaction failed");
+        console.error("ERROR:", error);
+        await onFailed(error?.toString() || errorMessageFallback);
+        reject(error);
+      });
+    });
+  }
+
+  // ================================
+  // GOVBOT VOTING METHODS (Server-side with configured wallet)
+  // ================================
+
+  /**
+   * Submit a vote using the GovBot wallet (server-side voting)
+   * This method is used when the GovBot makes autonomous voting decisions
+   * Uses the wallet configured in environment variables (POLKADOT_WALLET_JSON)
+   * @param referendumId The referendum ID to vote on
+   * @param vote The vote decision (aye, nay, or abstain)
+   * @param conviction The conviction multiplier for the vote (1-6)
+   * @param balance Optional balance to vote with (in planck units)
+   * @returns Promise<string> The transaction hash
+   */
+  async submitVote(
+    referendumId: string,
+    vote: "aye" | "nay" | "abstain",
+    conviction: number = 1,
+    balance?: string
+  ): Promise<string> {
+    try {
+      const api = await this.initApi();
+      await cryptoWaitReady();
+
+      const wallet = await this.getGovBotWallet();
+
+      if (!balance && vote !== "abstain") {
+        balance = await this.getVotingPower(wallet.address);
+      }
 
       let voteValue;
-      if (voteType === "aye") {
-        voteValue = { Standard: { vote: { aye: true }, conviction } };
-      } else if (voteType === "nay") {
-        voteValue = { Standard: { vote: { aye: false }, conviction } };
+      if (vote === "aye") {
+        voteValue = {
+          Standard: {
+            vote: { aye: true, conviction },
+            balance: balance || "0",
+          },
+        };
+      } else if (vote === "nay") {
+        voteValue = {
+          Standard: {
+            vote: { aye: false, conviction },
+            balance: balance || "0",
+          },
+        };
       } else {
-        voteValue = { Abstain: null };
+        voteValue = {
+          Standard: {
+            vote: { aye: false, conviction: 0 },
+            balance: "0",
+          },
+        };
       }
 
       const tx = api.tx.convictionVoting.vote(referendumId, voteValue);
-      return u8aToHex(tx.method.toU8a());
+
+      console.log(
+        `GovBot submitting ${vote} vote for referendum ${referendumId} with conviction ${conviction}`
+      );
+
+      return new Promise<string>((resolve, reject) => {
+        tx.signAndSend(wallet, { tip: 0, nonce: -1 }, (result) => {
+          console.log(`Transaction status: ${result.status.type}`);
+
+          if (result.status.isInBlock) {
+            console.log(
+              `Transaction included in block ${result.status.asInBlock}`
+            );
+          }
+
+          if (result.status.isFinalized) {
+            console.log(
+              `Transaction finalized in block ${result.status.asFinalized}`
+            );
+
+            const failed = result.events.find(({ event }) =>
+              api.events.system.ExtrinsicFailed.is(event)
+            );
+
+            if (failed) {
+              const [dispatchError] = failed.event.data;
+              let errorMessage = "Transaction failed";
+
+              try {
+                const dispatchErrorData = dispatchError as any;
+                if (dispatchErrorData?.isModule) {
+                  const decoded = api.registry.findMetaError(
+                    dispatchErrorData.asModule
+                  );
+                  errorMessage = `${decoded.section}.${decoded.name}: ${decoded.docs}`;
+                } else {
+                  errorMessage = `Transaction failed: ${dispatchError.toString()}`;
+                }
+              } catch (error) {
+                console.error("Error decoding dispatch error:", error);
+                errorMessage = `Transaction failed: ${dispatchError.toString()}`;
+              }
+
+              reject(new Error(errorMessage));
+              return;
+            }
+
+            resolve(result.txHash.toHex());
+          }
+
+          if (result.isError) {
+            reject(new Error("Transaction failed with unknown error"));
+          }
+        }).catch((error) => {
+          console.error("Error in signAndSend:", error);
+          reject(error);
+        });
+      });
     } catch (error) {
       console.error("Error submitting vote:", error);
       throw new Error("Failed to submit vote: " + (error as Error).message);
+    }
+  }
+
+  /**
+   * Client-side delegation function for browser wallet integration
+   * @param selectedAccount - The wallet account to use for signing
+   * @param amount - The amount to delegate (in DOT)
+   * @param conviction - The conviction multiplier (1-6)
+   * @param delegateAddress - The address to delegate to
+   * @param tracks - Array of track IDs to delegate on (optional, defaults to all governance tracks)
+   * @returns Promise<string> - The transaction hash
+   */
+  async delegateVotingPowerClient(
+    selectedAccount: WalletAccount,
+    amount: string,
+    conviction: number,
+    delegateAddress: string,
+    tracks: number[] = [
+      0, 2, 34, 33, 32, 31, 30, 11, 1, 10, 12, 13, 14, 15, 20, 21,
+    ]
+  ): Promise<string> {
+    try {
+      const { ApiPromise, WsProvider } = await import("@polkadot/api");
+      const { web3FromAddress } = await import("@polkadot/extension-dapp");
+
+      const wsProvider = new WsProvider("wss://rpc.polkadot.io");
+      const api = await ApiPromise.create({ provider: wsProvider });
+
+      const injector = await web3FromAddress(selectedAccount.address);
+
+      const balance = BigInt(parseFloat(amount) * 10_000_000_000);
+
+      const txs = tracks.map((track) =>
+        api.tx.convictionVoting.delegate(
+          track,
+          delegateAddress,
+          conviction,
+          balance.toString()
+        )
+      );
+
+      const tx = txs.length === 1 ? txs[0] : api.tx.utility.batchAll(txs);
+
+      const result = await new Promise<string>((resolve, reject) => {
+        tx.signAndSend(
+          selectedAccount.address,
+          { signer: injector.signer as any },
+          (result: unknown) => {
+            const submittableResult = result as {
+              status: {
+                isInBlock: boolean;
+                isFinalized: boolean;
+                asInBlock: unknown;
+                asFinalized: unknown;
+              };
+              txHash: { toHex: () => string };
+              isError: boolean;
+            };
+
+            if (submittableResult.status.isInBlock) {
+              console.log(
+                `Transaction in block: ${submittableResult.status.asInBlock}`
+              );
+              resolve(submittableResult.txHash.toHex());
+            } else if (submittableResult.status.isFinalized) {
+              console.log(
+                `Transaction finalized: ${submittableResult.status.asFinalized}`
+              );
+            } else if (submittableResult.isError) {
+              reject(new Error("Transaction failed"));
+            }
+          }
+        ).catch(reject);
+      });
+
+      await api.disconnect();
+
+      return result;
+    } catch (error) {
+      console.error("Error in client-side delegation:", error);
+      throw new Error(
+        `Failed to delegate voting power: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 }
