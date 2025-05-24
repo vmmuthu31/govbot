@@ -94,6 +94,11 @@ class PolkadotService {
     await cryptoWaitReady();
     const keyring = new Keyring({ type: "sr25519" });
 
+    if (process.env.POLKADOT_SEED_PHRASE) {
+      const pair = keyring.addFromUri(process.env.POLKADOT_SEED_PHRASE);
+      return pair;
+    }
+
     let walletData;
     if (process.env.POLKADOT_WALLET_JSON) {
       const walletJson = process.env.POLKADOT_WALLET_JSON;
@@ -107,7 +112,9 @@ class PolkadotService {
         walletData = JSON.parse(walletFile);
       }
     } else {
-      throw new Error("POLKADOT_WALLET_JSON is not set");
+      throw new Error(
+        "POLKADOT_WALLET_JSON or POLKADOT_SEED_PHRASE is not set"
+      );
     }
 
     if (
@@ -115,25 +122,9 @@ class PolkadotService {
       walletData.encoding.content &&
       walletData.encoding.content.includes("batch-pkcs8")
     ) {
-      if (!process.env.POLKADOT_WALLET_PASSWORD) {
-        throw new Error(
-          "POLKADOT_WALLET_PASSWORD is required for batch-encoded wallets"
-        );
-      }
-      const botAddress = this.getGovBotAddress();
-
-      try {
-        const pair = keyring.addFromAddress(botAddress);
-
-        console.warn(
-          "Using batch wallet - signing may not work without proper key extraction"
-        );
-        return pair;
-      } catch (error) {
-        throw new Error(
-          `Failed to handle batch wallet: ${(error as Error).message}`
-        );
-      }
+      throw new Error(
+        "Batch wallets are not supported for signing. Please export individual account JSON or use POLKADOT_SEED_PHRASE environment variable instead."
+      );
     } else if (
       walletData.accounts &&
       Array.isArray(walletData.accounts) &&
@@ -852,6 +843,87 @@ class PolkadotService {
       console.error("Error getting block timestamp:", error);
       throw new Error(
         "Failed to get block timestamp: " + (error as Error).message
+      );
+    }
+  }
+
+  /**
+   * Get detailed balance information for any address
+   * @param address Optional address to check (defaults to GovBot wallet address)
+   * @returns Promise with detailed balance information
+   */
+  async getDetailedBalance(address?: string): Promise<{
+    address: string;
+    free: string;
+    reserved: string;
+    frozen: string;
+    total: string;
+    transferable: string;
+    formatted: {
+      free: string;
+      reserved: string;
+      frozen: string;
+      total: string;
+      transferable: string;
+    };
+  }> {
+    try {
+      const api = await this.initApi();
+
+      let targetAddress = address;
+      if (!targetAddress) {
+        try {
+          const wallet = await this.getGovBotWallet();
+          targetAddress = wallet.address;
+        } catch {
+          targetAddress = process.env.POLKADOT_BOT_ADDRESS;
+        }
+      }
+
+      if (!targetAddress) {
+        throw new Error(
+          "No address provided and unable to determine wallet address"
+        );
+      }
+
+      const accountInfo = (await api.query.system.account(
+        targetAddress
+      )) as AccountInfo;
+
+      const free = accountInfo.data.free.toString();
+      const reserved = accountInfo.data.reserved.toString();
+      const frozen = accountInfo.data.miscFrozen?.toString() || "0";
+
+      const freeAmount = BigInt(free);
+      const reservedAmount = BigInt(reserved);
+      const frozenAmount = BigInt(frozen);
+      const totalAmount = freeAmount + reservedAmount;
+      const transferableAmount =
+        freeAmount > frozenAmount ? freeAmount - frozenAmount : BigInt(0);
+
+      const formatAmount = (amount: bigint): string => {
+        return (Number(amount) / 10_000_000_000).toFixed(10);
+      };
+
+      return {
+        address: targetAddress,
+        free,
+        reserved: reserved,
+        frozen: frozen,
+        total: totalAmount.toString(),
+        transferable: transferableAmount.toString(),
+        formatted: {
+          free: formatAmount(freeAmount),
+          reserved: formatAmount(reservedAmount),
+          frozen: formatAmount(frozenAmount),
+          total: formatAmount(totalAmount),
+          transferable: formatAmount(transferableAmount),
+        },
+      };
+    } catch (error) {
+      console.error("Error getting detailed balance:", error);
+      throw new Error(
+        "Failed to get detailed balance: " + (error as Error).message
       );
     }
   }

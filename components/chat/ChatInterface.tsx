@@ -101,6 +101,16 @@ export function ChatInterface({
 
       const data = await response.json();
       setMessages((prevMessages) => [...prevMessages, data.message]);
+
+      if (data.vote && data.txHash) {
+        toast.success(
+          `Vote submitted to blockchain! TX Hash: ${data.txHash.slice(0, 8)}...`
+        );
+        console.log("Vote transaction:", {
+          vote: data.vote,
+          txHash: data.txHash,
+        });
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message. Please try again.");

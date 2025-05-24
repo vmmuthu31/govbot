@@ -128,6 +128,7 @@ export async function POST(req: NextRequest) {
     });
 
     let vote = null;
+    let txHash = null;
     if (!proposal.vote) {
       const { decision, reasoning } = await generateVoteDecision({
         ...proposal,
@@ -150,6 +151,20 @@ export async function POST(req: NextRequest) {
         ],
       });
       if (decision === "Aye" || decision === "Nay") {
+        const testBalance = "100000000";
+
+        const conviction = 1;
+        const onChainDecision = decision.toLowerCase() as
+          | "aye"
+          | "nay"
+          | "abstain";
+        txHash = await polkadotService.submitVote(
+          proposalId,
+          onChainDecision,
+          conviction,
+          testBalance
+        );
+
         vote = await prisma.vote.create({
           data: {
             id: uuidv4(),
@@ -159,7 +174,17 @@ export async function POST(req: NextRequest) {
             proposalId: proposal.id,
           },
         });
-        const decisionMessage = `\nI've made my decision on this proposal.\n\n**Decision: ${decision}**\n\n${reasoning}\n\nThank you for engaging with me on this proposal. My vote has been recorded.`;
+        const decisionMessage = `
+        I've made my decision on this proposal.
+        
+        **Decision: ${decision}**
+        
+        ${reasoning}
+        
+        Thank you for engaging with me on this proposal. My vote has been recorded${
+          txHash ? " and submitted to the blockchain" : ""
+        }.
+        `;
         await prisma.message.create({
           data: {
             id: uuidv4(),
@@ -178,7 +203,12 @@ export async function POST(req: NextRequest) {
         role: assistantMessage.role,
         createdAt: assistantMessage.createdAt,
       },
-      ...(vote ? { vote } : {}),
+      ...(vote
+        ? {
+            vote,
+            ...(txHash ? { txHash } : {}),
+          }
+        : {}),
     });
   } catch (error) {
     console.error("Error in chat API:", error);
