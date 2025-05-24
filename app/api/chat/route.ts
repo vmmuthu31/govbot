@@ -6,11 +6,20 @@ import { polkadotService } from "@/services/polkadot";
 
 export async function POST(req: NextRequest) {
   try {
-    const { proposalId, message } = await req.json();
+    const { proposalId, message, userAddress } = await req.json();
 
     if (!proposalId || !message) {
       return NextResponse.json(
         { error: "Proposal ID and message are required" },
+        { status: 400 }
+      );
+    }
+
+    if (!userAddress) {
+      return NextResponse.json(
+        {
+          error: "User wallet address is required. Please connect your wallet.",
+        },
         { status: 400 }
       );
     }
@@ -53,7 +62,7 @@ export async function POST(req: NextRequest) {
           title: onChainProposal.title || `Referendum ${proposalId}`,
           description:
             onChainProposal.description || "No description available",
-          proposer: onChainProposal.submitter,
+          proposer: onChainProposal.proposer,
           track: onChainProposal.track,
           createdAt: new Date(),
         },
@@ -68,6 +77,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "Proposal not found" },
         { status: 404 }
+      );
+    }
+
+    if (proposal.proposer !== userAddress) {
+      return NextResponse.json(
+        {
+          error:
+            "Only the proposer of this proposal can chat with the bot. Please connect the wallet address that created this proposal.",
+          proposer: proposal.proposer,
+          connectedAddress: userAddress,
+        },
+        { status: 403 }
       );
     }
 
