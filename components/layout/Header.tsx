@@ -45,11 +45,6 @@ export function Header() {
           </div>
           <div className="flex items-center space-x-4">
             <DelegateButton />
-
-            <Link href="/" className="md:hidden">
-              <Bot className="h-6 w-6 text-primary" />
-            </Link>
-
             <WalletConnect />
           </div>
         </div>
