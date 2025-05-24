@@ -208,6 +208,8 @@ class PolkadotService {
           tally,
         } = ongoingInfo;
 
+        const blockTimestamp = await this.getBlockTimestamp(submitted);
+
         proposals.push({
           id: refId,
           track: String(track),
@@ -225,6 +227,7 @@ class PolkadotService {
             ayes: String(tally.ayes),
             nays: String(tally.nays),
           },
+          createdAt: blockTimestamp,
         });
       }
 
@@ -290,6 +293,8 @@ class PolkadotService {
         console.warn("Failed to fetch from Polkassembly:", polkassemblyError);
       }
 
+      const blockTimestamp = await this.getBlockTimestamp(submitted);
+
       return {
         id: referendumId,
         track: String(track),
@@ -309,6 +314,7 @@ class PolkadotService {
         },
         title,
         description,
+        createdAt: blockTimestamp,
       };
     } catch (error) {
       console.error("Error fetching proposal by id:", error);
@@ -815,6 +821,37 @@ class PolkadotService {
         `Failed to delegate voting power: ${
           error instanceof Error ? error.message : "Unknown error"
         }`
+      );
+    }
+  }
+
+  /**
+   * Get block timestamp from a block number
+   * @param blockNumber The block number to get timestamp for
+   * @returns Promise<Date> The timestamp when the block was created
+   */
+  async getBlockTimestamp(blockNumber: string | number): Promise<Date> {
+    try {
+      const api = await this.initApi();
+      const blockHash = await api.rpc.chain.getBlockHash(blockNumber);
+      const block = await api.rpc.chain.getBlock(blockHash);
+      const timestampExtrinsic = block.block.extrinsics.find(
+        (ext) =>
+          ext.method.section === "timestamp" && ext.method.method === "set"
+      );
+
+      if (timestampExtrinsic) {
+        const timestamp = timestampExtrinsic.method.args[0].toString();
+        return new Date(parseInt(timestamp));
+      }
+
+      const apiAt = await api.at(blockHash);
+      const timestamp = await apiAt.query.timestamp.now();
+      return new Date(parseInt(timestamp.toString()));
+    } catch (error) {
+      console.error("Error getting block timestamp:", error);
+      throw new Error(
+        "Failed to get block timestamp: " + (error as Error).message
       );
     }
   }

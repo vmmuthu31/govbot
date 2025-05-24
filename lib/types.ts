@@ -66,6 +66,7 @@ export interface RefCountedProposal {
   };
   title?: string;
   description?: string;
+  createdAt?: Date;
 }
 
 export interface OnChainVote {
