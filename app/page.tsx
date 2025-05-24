@@ -277,7 +277,7 @@ export default function Home() {
                 <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : activeProposals.length > 0 ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-h-[32rem] overflow-y-auto">
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-h-[54rem] overflow-y-auto">
                 {activeProposals.map((proposal) => (
                   <ProposalCard key={proposal.id} proposal={proposal} />
                 ))}
