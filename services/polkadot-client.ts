@@ -1,4 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+if (typeof window === "undefined") {
+  throw new Error(
+    "services/polkadot-client.ts must only be imported in a browser/client component. It cannot be used in SSR or API routes."
+  );
+}
+
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { cryptoWaitReady } from "@polkadot/util-crypto";
 import type { WalletAccount } from "@/services/wallet";
@@ -76,14 +82,8 @@ class PolkadotClientService {
             };
 
             if (submittableResult.status.isInBlock) {
-              console.log(
-                `Transaction in block: ${submittableResult.status.asInBlock}`
-              );
               resolve(submittableResult.txHash.toHex());
             } else if (submittableResult.status.isFinalized) {
-              console.log(
-                `Transaction finalized: ${submittableResult.status.asFinalized}`
-              );
             } else if (submittableResult.isError) {
               reject(new Error("Transaction failed"));
             }

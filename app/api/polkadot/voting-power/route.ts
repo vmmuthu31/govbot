@@ -73,12 +73,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error("Error preparing delegation call data:", error);
 
-      // Fallback to simulation if preparation fails
       const simulatedTxHash = `0x${Math.random().toString(16).substr(2, 64)}`;
-
-      console.log(
-        `Simulated delegation: ${amount} DOT from ${address} to ${delegateAddress} with conviction ${conviction}`
-      );
 
       return NextResponse.json({
         success: true,

@@ -142,7 +142,9 @@ export function DelegateButton() {
             <div className="space-y-2">
               <Label>Connected Wallet</Label>
               <WalletConnect
-                onAccountSelected={setSelectedAccount}
+                onAccountSelected={(account) => {
+                  setSelectedAccount(account);
+                }}
                 selectedAccount={selectedAccount}
               />
               {selectedAccount && (

@@ -1,4 +1,3 @@
-// This must be the first thing in the file
 if (typeof window === "undefined") {
   throw new Error(
     "services/wallet.ts must only be imported in a browser/client component. It cannot be used in SSR or API routes. Add 'use client' directive to any component that imports this module."
@@ -29,14 +28,50 @@ class WalletService {
   private connectedWallet: ConnectedWallet | null = null;
   private extensions: InjectedExtension[] = [];
   private accounts: InjectedAccountWithMeta[] = [];
+  private readonly STORAGE_KEY = "govbot_connected_wallet";
 
-  private constructor() {}
+  private constructor() {
+    this.loadPersistedWallet();
+  }
 
   static getInstance(): WalletService {
     if (!WalletService.instance) {
       WalletService.instance = new WalletService();
     }
     return WalletService.instance;
+  }
+
+  /**
+   * Load persisted wallet connection from localStorage
+   */
+  private loadPersistedWallet(): void {
+    if (typeof window === "undefined") return;
+
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        this.connectedWallet = JSON.parse(stored);
+      }
+    } catch (error) {
+      console.error("Error loading persisted wallet:", error);
+      localStorage.removeItem(this.STORAGE_KEY);
+    }
+  }
+
+  /**
+   * Persist wallet connection to localStorage
+   */
+  private persistWallet(): void {
+    if (typeof window === "undefined") return;
+
+    if (this.connectedWallet) {
+      localStorage.setItem(
+        this.STORAGE_KEY,
+        JSON.stringify(this.connectedWallet)
+      );
+    } else {
+      localStorage.removeItem(this.STORAGE_KEY);
+    }
   }
 
   /**
@@ -120,6 +155,8 @@ class WalletService {
         accounts: walletAccounts,
       };
 
+      this.persistWallet();
+
       return this.connectedWallet;
     } catch (error) {
       console.error("Error connecting to wallet:", error);
@@ -132,6 +169,53 @@ class WalletService {
    */
   getConnectedWallet(): ConnectedWallet | null {
     return this.connectedWallet;
+  }
+
+  /**
+   * Verify wallet connection is still valid and refresh if needed
+   */
+  async verifyAndRefreshConnection(): Promise<ConnectedWallet | null> {
+    if (!this.connectedWallet) {
+      return null;
+    }
+
+    try {
+      const availableWallets = await this.getAvailableWallets();
+      if (!availableWallets.includes(this.connectedWallet.name)) {
+        this.disconnect();
+        return null;
+      }
+
+      const { web3Enable, web3Accounts } = await import(
+        "@polkadot/extension-dapp"
+      );
+
+      this.extensions = await web3Enable("GovBot");
+      if (this.extensions.length === 0) {
+        this.disconnect();
+        return null;
+      }
+
+      this.accounts = await web3Accounts();
+      const currentWalletAccounts = this.accounts
+        .filter((account) => account.meta.source === this.connectedWallet!.name)
+        .map((account) => ({
+          address: account.address,
+          name: account.meta.name,
+          source: account.meta.source,
+          type: account.type,
+          genesisHash: account.meta.genesisHash ?? undefined,
+        }));
+
+      this.connectedWallet.accounts = currentWalletAccounts;
+      this.persistWallet();
+
+      return this.connectedWallet;
+    } catch (error) {
+      console.error("Error verifying wallet connection:", error);
+      this.disconnect();
+      return null;
+    }
   }
 
   /**
@@ -204,6 +288,8 @@ class WalletService {
     this.connectedWallet = null;
     this.extensions = [];
     this.accounts = [];
+
+    this.persistWallet();
   }
 }
 

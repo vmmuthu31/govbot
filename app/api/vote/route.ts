@@ -81,7 +81,6 @@ export async function POST(req: NextRequest) {
         onChainDecision,
         conviction
       );
-      console.log(`Vote transaction created with hash: ${txHash}`);
     } catch (err) {
       console.error("Failed to submit on-chain vote:", err);
     }

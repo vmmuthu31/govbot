@@ -17,20 +17,38 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Wallet,
   Copy,
   ExternalLink,
   CheckCircle,
   AlertCircle,
+  ChevronDown,
+  LogOut,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  walletService,
-  type ConnectedWallet,
-  type WalletAccount,
-} from "@/services/wallet";
+
+type WalletAccount = {
+  address: string;
+  name?: string;
+  source: string;
+  type?: string;
+  genesisHash?: string;
+};
+
+type ConnectedWallet = {
+  name: string;
+  version: string;
+  accounts: WalletAccount[];
+};
 
 interface WalletConnectProps {
   onAccountSelected?: (account: WalletAccount | null) => void;
@@ -47,41 +65,93 @@ export function WalletConnect({
   const [connectedWallet, setConnectedWallet] =
     useState<ConnectedWallet | null>(null);
   const [selectedWallet, setSelectedWallet] = useState<string>("");
+  const [isClient, setIsClient] = useState(false);
 
-  // Check for browser environment on component mount
   useEffect(() => {
-    if (typeof window === "undefined") {
-      console.warn(
-        "Wallet connection is only available in browser environment"
-      );
-      return;
-    }
+    setIsClient(true);
   }, []);
 
   useEffect(() => {
+    if (!isClient) return;
+
+    const loadPersistedState = async () => {
+      try {
+        const { walletService } = await import("@/services/wallet");
+        const wallet = await walletService.verifyAndRefreshConnection();
+        if (wallet) {
+          setConnectedWallet(wallet);
+
+          const persistedAccountAddress = localStorage.getItem(
+            "selectedAccountAddress"
+          );
+          if (persistedAccountAddress && onAccountSelected) {
+            const account = wallet.accounts.find(
+              (acc) => acc.address === persistedAccountAddress
+            );
+            if (account) {
+              onAccountSelected(account);
+            } else if (wallet.accounts.length > 0) {
+              onAccountSelected(wallet.accounts[0]);
+              localStorage.setItem(
+                "selectedAccountAddress",
+                wallet.accounts[0].address
+              );
+            }
+          } else if (wallet.accounts.length > 0 && onAccountSelected) {
+            onAccountSelected(wallet.accounts[0]);
+            localStorage.setItem(
+              "selectedAccountAddress",
+              wallet.accounts[0].address
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Error loading persisted wallet state:", error);
+      }
+    };
+
+    loadPersistedState();
+  }, [isClient, onAccountSelected]);
+
+  useEffect(() => {
+    if (!isClient || typeof window === "undefined") {
+      return;
+    }
+
+    const checkAvailableWallets = async () => {
+      try {
+        const { walletService } = await import("@/services/wallet");
+        const wallets = await walletService.getAvailableWallets();
+        setAvailableWallets(wallets);
+        if (wallets.length > 0) {
+          setSelectedWallet(wallets[0]);
+        }
+      } catch (error) {
+        console.error("Error checking available wallets:", error);
+      }
+    };
+
+    const loadConnectedWallet = async () => {
+      try {
+        const { walletService } = await import("@/services/wallet");
+        const wallet = walletService.getConnectedWallet();
+        if (wallet) {
+          setConnectedWallet(wallet);
+        }
+      } catch (error) {
+        console.error("Error loading connected wallet:", error);
+      }
+    };
+
     if (open) {
       checkAvailableWallets();
-      const wallet = walletService.getConnectedWallet();
-      if (wallet) {
-        setConnectedWallet(wallet);
-      }
+      loadConnectedWallet();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, selectedAccount]);
-
-  const checkAvailableWallets = async () => {
-    try {
-      const wallets = await walletService.getAvailableWallets();
-      setAvailableWallets(wallets);
-      if (wallets.length > 0) {
-        setSelectedWallet(wallets[0]);
-      }
-    } catch (error) {
-      console.error("Error checking available wallets:", error);
-    }
-  };
+  }, [open, isClient]);
 
   const handleConnect = async () => {
+    if (!isClient) return;
+
     if (!selectedWallet) {
       toast.error("Please select a wallet");
       return;
@@ -89,6 +159,7 @@ export function WalletConnect({
 
     try {
       setLoading(true);
+      const { walletService } = await import("@/services/wallet");
       const wallet = await walletService.connectWallet(selectedWallet);
       setConnectedWallet(wallet);
 
@@ -96,8 +167,12 @@ export function WalletConnect({
         `Connected to ${wallet.name} with ${wallet.accounts.length} account(s)`
       );
 
-      if (wallet.accounts.length > 0 && onAccountSelected) {
-        onAccountSelected(wallet.accounts[0]);
+      if (wallet.accounts.length > 0) {
+        const firstAccount = wallet.accounts[0];
+        if (onAccountSelected) {
+          onAccountSelected(firstAccount);
+        }
+        localStorage.setItem("selectedAccountAddress", firstAccount.address);
       }
     } catch (error) {
       console.error("Error connecting wallet:", error);
@@ -109,20 +184,33 @@ export function WalletConnect({
     }
   };
 
-  const handleDisconnect = () => {
-    walletService.disconnect();
-    setConnectedWallet(null);
-    if (onAccountSelected) {
-      onAccountSelected(null);
+  const handleDisconnect = async () => {
+    if (!isClient) return;
+
+    try {
+      const { walletService } = await import("@/services/wallet");
+      walletService.disconnect();
+      setConnectedWallet(null);
+      if (onAccountSelected) {
+        onAccountSelected(null);
+      }
+      localStorage.removeItem("selectedAccountAddress");
+      toast.success("Wallet disconnected");
+    } catch (error) {
+      console.error("Error disconnecting wallet:", error);
     }
-    toast.success("Wallet disconnected");
   };
 
   const handleAccountSelect = (account: WalletAccount) => {
+    localStorage.setItem("selectedAccountAddress", account.address);
+
     if (onAccountSelected) {
       onAccountSelected(account);
     }
+
     setOpen(false);
+
+    toast.success(`Switched to account: ${account.name || "Unnamed Account"}`);
   };
 
   const copyAddress = (address: string) => {
@@ -147,107 +235,195 @@ export function WalletConnect({
     }
   };
 
-  if (connectedWallet) {
+  if (!isClient) {
     return (
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button variant="outline" size="sm">
-            <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-            {selectedAccount
-              ? formatAddress(selectedAccount.address)
-              : "Select Account"}
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <Wallet className="mr-2 h-5 w-5" />
-              Connected to {getWalletDisplayName(connectedWallet.name)}
-            </DialogTitle>
-            <DialogDescription>
-              Select an account to use for transactions
-            </DialogDescription>
-          </DialogHeader>
+      <Button variant="outline" size="sm" disabled>
+        <Wallet className="mr-2 h-4 w-4" />
+        Loading...
+      </Button>
+    );
+  }
 
-          <div className="space-y-4">
-            <div className="rounded-md bg-muted/50 p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">
-                    {getWalletDisplayName(connectedWallet.name)}
+  if (connectedWallet) {
+    let displayAccount = selectedAccount;
+
+    if (!displayAccount && typeof window !== "undefined") {
+      const persistedAccountAddress = localStorage.getItem(
+        "selectedAccountAddress"
+      );
+      if (persistedAccountAddress) {
+        displayAccount = connectedWallet.accounts.find(
+          (acc) => acc.address === persistedAccountAddress
+        );
+      }
+    }
+
+    if (!displayAccount && connectedWallet.accounts.length > 0) {
+      displayAccount = connectedWallet.accounts[0];
+    }
+
+    return (
+      <>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="min-w-[180px] justify-between"
+            >
+              <div className="flex items-center">
+                <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                <div className="flex flex-col items-start">
+                  <span className="text-xs text-muted-foreground"></span>
+                  <span className="text-sm font-mono">
+                    {displayAccount
+                      ? formatAddress(displayAccount.address)
+                      : "Select Account"}
+                  </span>
+                </div>
+              </div>
+              <ChevronDown className="ml-2 h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-[300px]">
+            <div className="px-2 py-1.5">
+              <p className="text-sm font-medium">
+                {getWalletDisplayName(connectedWallet.name)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {connectedWallet.accounts.length} account(s) available
+              </p>
+            </div>
+            <DropdownMenuSeparator />
+
+            {/* Current Account Info */}
+            {displayAccount && (
+              <>
+                <div className="px-2 py-1.5">
+                  <p className="text-xs text-muted-foreground mb-1">
+                    Current Account
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    Version {connectedWallet.version}
+                  <p className="text-sm font-medium">
+                    {displayAccount.name || "Unnamed Account"}
+                  </p>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    {displayAccount.address.slice(0, 6)}...
+                    {displayAccount.address.slice(-6)}
                   </p>
                 </div>
-                <Badge variant="secondary">
-                  {connectedWallet.accounts.length} accounts
-                </Badge>
+                <DropdownMenuSeparator />
+              </>
+            )}
+
+            {/* Quick Actions */}
+            {displayAccount && (
+              <>
+                <DropdownMenuItem
+                  onClick={() => copyAddress(displayAccount.address)}
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy Address
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    window.open(
+                      `https://polkadot.subscan.io/account/${displayAccount.address}`,
+                      "_blank"
+                    )
+                  }
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  View on Subscan
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+
+            {/* Account Selection */}
+            <DropdownMenuItem onClick={() => setOpen(true)}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Change Account
+            </DropdownMenuItem>
+
+            <DropdownMenuItem onClick={handleDisconnect}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Disconnect
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Account Selection Dialog */}
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Select Account</DialogTitle>
+              <DialogDescription>
+                Choose which account to use for transactions
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium">Available Accounts</h4>
+                <div className="max-h-60 space-y-2 overflow-y-auto">
+                  {connectedWallet.accounts.map((account, index) => {
+                    const isSelected =
+                      displayAccount?.address === account.address;
+                    return (
+                      <div
+                        key={account.address}
+                        className={`cursor-pointer rounded-md border p-3 transition-colors hover:bg-muted/50 ${
+                          isSelected ? "border-primary bg-primary/5" : ""
+                        }`}
+                        onClick={() => handleAccountSelect(account)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">
+                              {account.name || `Account ${index + 1}`}
+                            </p>
+                            <p className="text-xs text-muted-foreground font-mono">
+                              {formatAddress(account.address)}
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            {isSelected && (
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                copyAddress(account.address);
+                              }}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(
+                                  `https://polkadot.subscan.io/account/${account.address}`,
+                                  "_blank"
+                                );
+                              }}
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium">Available Accounts</h4>
-              <div className="max-h-60 space-y-2 overflow-y-auto">
-                {connectedWallet.accounts.map((account, index) => (
-                  <div
-                    key={account.address}
-                    className={`cursor-pointer rounded-md border p-3 transition-colors hover:bg-muted/50 ${
-                      selectedAccount?.address === account.address
-                        ? "border-primary bg-primary/5"
-                        : ""
-                    }`}
-                    onClick={() => handleAccountSelect(account)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">
-                          {account.name || `Account ${index + 1}`}
-                        </p>
-                        <p className="text-xs text-muted-foreground font-mono">
-                          {formatAddress(account.address)}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            copyAddress(account.address);
-                          }}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(
-                              `https://polkadot.subscan.io/account/${account.address}`,
-                              "_blank"
-                            );
-                          }}
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-between pt-4">
-              <Button variant="outline" onClick={handleDisconnect}>
-                Disconnect
-              </Button>
-              <Button onClick={() => setOpen(false)}>Done</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 

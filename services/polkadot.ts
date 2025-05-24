@@ -55,12 +55,7 @@ class PolkadotService {
         this.api = await ApiPromise.create({ provider });
         await this.api.isReady;
 
-        console.log(`Connected to Polkadot RPC: ${endpoint}`);
-
         this.api.on("disconnected", async () => {
-          console.log(
-            "Disconnected from Polkadot RPC, attempting to reconnect..."
-          );
           await this.switchRpcEndpoint();
         });
 
@@ -144,7 +139,6 @@ class PolkadotService {
       Array.isArray(walletData.accounts) &&
       walletData.accounts.length > 0
     ) {
-      // Handle unencrypted batch format
       const accountData = walletData.accounts[0];
       const pair = keyring.addFromJson(accountData);
 
@@ -393,8 +387,6 @@ class PolkadotService {
         killed?: boolean;
       };
 
-      // A proposal is active if it has an ongoing status and hasn't been
-      // approved, rejected, cancelled, timed out, or killed
       return (
         !!info?.ongoing &&
         !info.approved &&
@@ -477,7 +469,6 @@ class PolkadotService {
         address: userAddress,
         errorMessageFallback: "Failed to delegate voting power",
         onSuccess: async (txHash) => {
-          console.log("Delegation successful:", txHash);
           onSuccess(txHash?.toString());
         },
         onFailed: async (error) => {
@@ -567,20 +558,16 @@ class PolkadotService {
         }) => {
           try {
             if (status.isInvalid) {
-              console.log("Transaction invalid");
               setStatus?.("Transaction invalid");
               isFailed = true;
               await onFailed("Transaction invalid");
               reject(new Error("Transaction invalid"));
             } else if (status.isReady) {
-              console.log("Transaction is ready");
               setStatus?.("Transaction is ready");
             } else if (status.isBroadcast) {
-              console.log("Transaction has been broadcasted");
               setStatus?.("Transaction has been broadcasted");
               onBroadcast?.();
             } else if (status.isInBlock) {
-              console.log("Transaction is in block");
               setStatus?.("Transaction is in block");
 
               for (const { event } of events) {
@@ -593,7 +580,6 @@ class PolkadotService {
                   }
                 } else if (event.method === "ExtrinsicFailed") {
                   setStatus?.("Transaction failed");
-                  console.log("Transaction failed");
                   isFailed = true;
 
                   const dispatchError = (event.data as any)?.[0];
@@ -615,9 +601,6 @@ class PolkadotService {
                 }
               }
             } else if (status.isFinalized) {
-              console.log(
-                `Transaction finalized in block ${status.asFinalized.toHex()}`
-              );
               setStatus?.("Transaction finalized");
 
               if (!isFailed && waitTillFinalizedHash) {
@@ -634,7 +617,6 @@ class PolkadotService {
           }
         }
       ).catch(async (error: Error) => {
-        console.log("Transaction failed:", error);
         setStatus?.("Transaction failed");
         console.error("ERROR:", error);
         await onFailed(error?.toString() || errorMessageFallback);
@@ -642,10 +624,6 @@ class PolkadotService {
       });
     });
   }
-
-  // ================================
-  // GOVBOT VOTING METHODS (Server-side with configured wallet)
-  // ================================
 
   /**
    * Submit a vote using the GovBot wallet (server-side voting)
@@ -699,14 +677,8 @@ class PolkadotService {
 
       const tx = api.tx.convictionVoting.vote(referendumId, voteValue);
 
-      console.log(
-        `GovBot submitting ${vote} vote for referendum ${referendumId} with conviction ${conviction}`
-      );
-
       return new Promise<string>((resolve, reject) => {
         tx.signAndSend(wallet, { tip: 0, nonce: -1 }, (result) => {
-          console.log(`Transaction status: ${result.status.type}`);
-
           if (result.status.isInBlock) {
             console.log(
               `Transaction included in block ${result.status.asInBlock}`
