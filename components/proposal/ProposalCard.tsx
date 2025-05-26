@@ -60,7 +60,7 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
       <CardContent className="flex-1 px-4 py-0 m-0">
         <div className="text-sm text-muted-foreground">
           <MarkdownViewer
-            className="max-h-40 p-0 m-0"
+            className="max-h-40 line-clamp-7 p-0 m-0"
             truncate={true}
             markdown={proposal.description}
           />
