@@ -83,10 +83,20 @@ export function MarkdownViewer(props: ReactMarkdownProps) {
         ref={editorRef}
         className={cn(
           "markdown-body",
-          truncate && !showMore ? `line-clamp-${maxLines}` : "line-clamp-none",
           "w-full",
+          truncate && !showMore ? `line-clamp-${maxLines}` : "!line-clamp-none",
           className
         )}
+        style={
+          showMore
+            ? {
+                display: "block",
+                overflow: "visible",
+                textOverflow: "unset",
+                whiteSpace: "normal",
+              }
+            : undefined
+        }
       >
         <ReactMarkdown
           components={markdownComponents}
@@ -101,7 +111,7 @@ export function MarkdownViewer(props: ReactMarkdownProps) {
           <div className="flex justify-center pt-2">
             <span
               onClick={handleShowLess}
-              className="flex cursor-pointer items-center gap-1 rounded-full bg-background px-3 py-1.5 text-sm font-medium text-foreground"
+              className="flex cursor-pointer items-center gap-1 rounded-full bg-[#F6F7F9] px-3 py-1.5 text-sm font-medium text-[#243A57]"
               aria-hidden="true"
             >
               Show Less <FiArrowUpCircle className="text-lg" />
@@ -111,7 +121,7 @@ export function MarkdownViewer(props: ReactMarkdownProps) {
           <div className="flex justify-center pt-2">
             <span
               onClick={handleShowMore}
-              className="flex cursor-pointer items-center gap-1 rounded-full bg-background px-3 py-1.5 text-sm font-medium text-foreground"
+              className="flex cursor-pointer items-center gap-1 rounded-full bg-[#F6F7F9] px-3 py-1.5 text-sm font-medium text-[#243A57]"
               aria-hidden="true"
             >
               Show More <FiArrowDownCircle className="text-lg" />

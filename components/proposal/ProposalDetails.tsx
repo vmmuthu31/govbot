@@ -66,7 +66,11 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
         <TabsContent value="details" className="mt-4">
           <div className="rounded-md border bg-card p-4 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <MarkdownViewer markdown={proposal.description} />
+              <MarkdownViewer
+                truncate={true}
+                maxLines={4}
+                markdown={proposal.description}
+              />
             </div>
           </div>
         </TabsContent>
