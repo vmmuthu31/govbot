@@ -426,7 +426,6 @@ export function ChatInterface({
         </div>
       </div>
 
-      {/* Wallet Connection Overlay */}
       {!selectedAccount ? (
         <div className="absolute inset-0 flex items-center justify-center bg-background/90 backdrop-blur-sm">
           <div className="w-full max-w-md p-6 space-y-4">
