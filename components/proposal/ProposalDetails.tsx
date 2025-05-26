@@ -1,13 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarIcon, ExternalLinkIcon, Bot, User } from "lucide-react";
+import { ExternalLinkIcon, Bot, User, ChevronDown } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { ProposalWithMessages } from "@/lib/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { VoteSummary } from "./VoteSummary";
 import { formatDistanceToNow } from "@/utils/formatDistanceToNow";
 import { MarkdownViewer } from "../Markdown/MarkdownViewer";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "../ui/collapsible";
+import { Separator } from "@/components/ui/separator";
+import styles from "./ProposalDetails.module.css";
+import { FiClock } from "react-icons/fi";
 
 interface ProposalDetailsProps {
   proposal: ProposalWithMessages;
@@ -15,6 +23,7 @@ interface ProposalDetailsProps {
 
 export function ProposalDetails({ proposal }: ProposalDetailsProps) {
   const [activeTab, setActiveTab] = useState("details");
+  const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -27,7 +36,7 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
             <Badge variant="secondary">Proposal ID: {proposal.id}</Badge>
           </div>
           <div className="flex items-center text-sm text-muted-foreground">
-            <CalendarIcon className="mr-1 h-4 w-4" />
+            <FiClock className="mr-1 h-4 w-4" />
             <span>{formatDistanceToNow(proposal.createdAt)}</span>
           </div>
         </div>
@@ -64,6 +73,48 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
           <TabsTrigger value="chat">Chat History</TabsTrigger>
         </TabsList>
         <TabsContent value="details" className="mt-4">
+          {/* AI Summary Collapsible */}
+          <Collapsible
+            open={isCollapsibleOpen}
+            onOpenChange={setIsCollapsibleOpen}
+            className={
+              styles.collapsibleWrapper ||
+              "relative w-full rounded-xl p-px bg-gradient-to-r from-pink-500 via-blue-400 to-purple-600 overflow-hidden mb-5"
+            }
+          >
+            <div
+              className={`${
+                styles.collapsibleInner ||
+                "rounded-[11px] w-full transition-all duration-300"
+              } ${
+                styles.postContentGradient ||
+                "bg-gradient-to-b from-purple-50 to-gray-50"
+              }`}
+            >
+              <CollapsibleTrigger
+                className={
+                  styles.collapsibleTrigger ||
+                  "flex w-full items-center justify-between p-2 font-medium text-foreground bg-transparent border-none cursor-pointer hover:opacity-80"
+                }
+              >
+                <span>✨ AI Summary</span>
+                <ChevronDown
+                  className={`${
+                    styles.chevronIcon ||
+                    "w-4 h-4 text-foreground font-semibold transition-transform duration-300"
+                  } ${isCollapsibleOpen ? "rotate-180" : ""}`}
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent
+                className={styles.collapsibleContent || "px-6 pb-6 text-sm"}
+              >
+                <Separator className="mb-3 mt-0 p-0" />
+                <MarkdownViewer markdown="This proposal seeks funding for the development and open-source release of Epico, an Ethereum wallet compatibility layer for Polkadot SDK chains. Epico enables users to interact with Polkadot-based applications using familiar Ethereum wallets like MetaMask, without requiring EVM emulation or wallet plugins. The project aims to reduce barriers to adoption by allowing seamless wallet integration across ecosystems." />
+              </CollapsibleContent>
+            </div>
+          </Collapsible>
+
+          {/* Full Proposal Content */}
           <div className="rounded-md border bg-card p-4 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <MarkdownViewer

@@ -1,6 +1,6 @@
 import type { Proposal, Vote } from "@/lib/generated/prisma";
 import Link from "next/link";
-import { CalendarIcon, ExternalLinkIcon } from "lucide-react";
+import { ExternalLinkIcon } from "lucide-react";
 import { formatDistanceToNow } from "@/utils/formatDistanceToNow";
 import { Badge } from "../ui/badge";
 import {
@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "../ui/card";
 import { MarkdownViewer } from "../Markdown/MarkdownViewer";
+import { FiClock } from "react-icons/fi";
 
 interface ProposalCardProps {
   proposal: Proposal & {
@@ -50,7 +51,7 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
             )}
           </div>
           <div className="flex items-center text-xs text-muted-foreground">
-            <CalendarIcon className="mr-1 h-3 w-3" />
+            <FiClock className="mr-1 h-3 w-3" />
             <span>{formatDistanceToNow(proposal.createdAt)}</span>
           </div>
         </div>
