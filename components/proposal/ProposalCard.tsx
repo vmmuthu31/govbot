@@ -35,7 +35,7 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
 
   return (
     <Card className="flex h-full flex-col overflow-hidden transition-shadow hover:shadow-md">
-      <CardHeader className="bg-muted/20 p-4">
+      <CardHeader className="bg-muted/20 px-4 py-0">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Badge variant="outline">
@@ -57,12 +57,13 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
         </div>
         <CardTitle className="line-clamp-2 text-lg">{proposal.title}</CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 p-4">
-        <div
-          className="line-clamp-3 text-sm text-muted-foreground"
-          style={{ overflow: "hidden" }}
-        >
-          <MarkdownViewer markdown={proposal.description} />
+      <CardContent className="flex-1 px-4 py-0 m-0">
+        <div className="text-sm text-muted-foreground">
+          <MarkdownViewer
+            className="max-h-40 p-0 m-0"
+            truncate={true}
+            markdown={proposal.description}
+          />
         </div>
       </CardContent>
       <CardFooter className="border-t bg-muted/10 p-4 mt-auto">

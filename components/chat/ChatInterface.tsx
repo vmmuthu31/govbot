@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Bot, Loader2, AlertCircle, Wallet } from "lucide-react";
+import {
+  Send,
+  Bot,
+  Loader2,
+  AlertCircle,
+  Wallet,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ChatMessage, ProposalWithMessages } from "@/lib/types";
@@ -18,6 +25,7 @@ const WalletConnect = dynamic(
 );
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { MarkdownViewer } from "../Markdown/MarkdownViewer";
+import { WalletNudgeDialog } from "../wallet/WalletNudgeDialog";
 
 interface ChatInterfaceProps {
   proposal: ProposalWithMessages;
@@ -79,6 +87,7 @@ export function ChatInterface({
     proposer: string;
     connectedAddress: string;
   } | null>(null);
+  const [walletNudgeOpen, setWalletNudgeOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const checkProposalStatus = useCallback(async () => {
@@ -338,13 +347,24 @@ export function ChatInterface({
             )}
 
             {messages?.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center">
+              <div className="flex h-full flex-col items-center justify-center space-y-4">
                 <Bot className="mb-2 h-12 w-12 text-muted-foreground" />
                 <p className="text-center text-sm text-muted-foreground">
                   {isCheckingStatus
                     ? "Checking proposal status..."
                     : "Start the conversation by introducing your proposal to GovBot."}
                 </p>
+                {!selectedAccount && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setWalletNudgeOpen(true)}
+                    className="bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 dark:from-purple-950 dark:to-pink-950 border-purple-200 dark:border-purple-800"
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Connect Wallet to Chat
+                    <Sparkles className="ml-2 h-4 w-4" />
+                  </Button>
+                )}
               </div>
             ) : (
               messages?.map((message, index) => (
@@ -467,6 +487,19 @@ export function ChatInterface({
           </div>
         </div>
       ) : null}
+
+      {/* Wallet Nudge Dialog */}
+      <WalletNudgeDialog
+        open={walletNudgeOpen}
+        onOpenChange={setWalletNudgeOpen}
+        onAccountSelected={(account) => {
+          setSelectedAccount(account);
+          setWalletError(null);
+        }}
+        selectedAccount={selectedAccount}
+        title="🎯 Ready to Chat with GovBot?"
+        description="Connect your wallet to start discussing this proposal with our AI governance assistant. Your insights matter!"
+      />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { RootLayout } from "@/components/layout/RootLayout";
 import Link from "next/link";
 import { Bot, ExternalLink, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WalletNudgeDemo } from "@/components/wallet/WalletNudgeDemo";
 
 export default function AboutPage() {
   return (
@@ -129,6 +130,15 @@ export default function AboutPage() {
                   </li>
                 </ul>
               </div>
+            </div>
+
+            <div className="mt-8 rounded-lg border bg-card p-6 shadow-sm">
+              <h3 className="mb-4 text-xl font-medium">Interactive Demo</h3>
+              <p className="mb-4 text-muted-foreground">
+                Try our fun wallet connection experience with animated GIFs and
+                engaging messaging!
+              </p>
+              <WalletNudgeDemo />
             </div>
 
             <div className="mt-8 rounded-lg border bg-card p-6 shadow-sm">

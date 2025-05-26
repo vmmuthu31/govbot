@@ -152,7 +152,6 @@ export async function POST(req: NextRequest) {
     let vote = null;
     let txHash = null;
     if (!proposal.vote) {
-      // Add validation check before generating vote decision
       const allMessages = [
         ...proposal.messages,
         {

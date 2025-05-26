@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
+import { WalletNudgeDialog } from "@/components/wallet/WalletNudgeDialog";
 
 export default function Home() {
   const router = useRouter();
@@ -42,6 +43,14 @@ export default function Home() {
   const [importId, setImportId] = useState("");
   const [importing, setImporting] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [walletNudgeOpen, setWalletNudgeOpen] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<{
+    address: string;
+    name?: string;
+    source: string;
+    type?: string;
+    genesisHash?: string;
+  } | null>(null);
 
   const fetchProposals = async () => {
     setLoading(true);
@@ -158,6 +167,22 @@ export default function Home() {
               GovBot helps evaluate and vote on Polkadot&apos;s OpenGov
               referenda with transparent, reasoned participation.
             </p>
+            <div className="mx-auto max-w-[600px]">
+              <div
+                className="text-sm text-muted-foreground/80 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 rounded-lg p-4 border border-purple-200 dark:border-purple-800 cursor-pointer hover:shadow-md transition-all duration-200"
+                onClick={() => setWalletNudgeOpen(true)}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-lg">🚀</span>
+                  <strong>Ready to join the governance party?</strong>
+                  <span className="text-lg">🎉</span>
+                </div>
+                <p className="mt-2 text-center">
+                  Click here to connect your wallet and start chatting with
+                  GovBot about proposals!
+                </p>
+              </div>
+            </div>
 
             <div className="flex flex-col items-center gap-6">
               <div className="flex max-w-md w-full mx-auto gap-2">
@@ -288,6 +313,9 @@ export default function Home() {
                 <h3 className="mb-2 text-xl font-medium">
                   No active proposals
                 </h3>
+                <p className="text-sm text-muted-foreground">
+                  Import a proposal to start chatting with GovBot
+                </p>
               </div>
             )}
           </div>
@@ -323,11 +351,23 @@ export default function Home() {
                 <h3 className="mb-2 text-xl font-medium">
                   No imported proposals
                 </h3>
+                <p className="text-sm text-muted-foreground">
+                  Use the &quot;Import Proposal&quot; button above to add
+                  proposals for GovBot analysis
+                </p>
               </div>
             )}
           </div>
         </div>
       </section>
+
+      {/* Wallet Nudge Dialog */}
+      <WalletNudgeDialog
+        open={walletNudgeOpen}
+        onOpenChange={setWalletNudgeOpen}
+        onAccountSelected={setSelectedAccount}
+        selectedAccount={selectedAccount}
+      />
     </RootLayout>
   );
 }

@@ -41,7 +41,6 @@ const isVideoUrl = (url: string): boolean => {
 };
 
 const getEmbedUrl = (url: string): string | null => {
-  // YouTube
   if (url.includes("youtube.com/watch")) {
     const videoId = url.match(/v=([^&\s]+)/)?.[1];
     return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
@@ -51,13 +50,11 @@ const getEmbedUrl = (url: string): string | null => {
     return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
   }
 
-  // Vimeo
   if (url.includes("vimeo.com")) {
     const videoId = url.split("/").pop();
     return videoId ? `https://player.vimeo.com/video/${videoId}` : null;
   }
 
-  // Dailymotion
   if (url.includes("dailymotion.com/video")) {
     const videoId = url.split("/").pop();
     return videoId
@@ -65,7 +62,6 @@ const getEmbedUrl = (url: string): string | null => {
       : null;
   }
 
-  // Facebook
   if (url.includes("facebook.com/watch")) {
     const videoId = url.match(/v=([^&\s]+)/)?.[1];
     return videoId
@@ -75,7 +71,6 @@ const getEmbedUrl = (url: string): string | null => {
       : null;
   }
 
-  // TikTok
   if (url.includes("tiktok.com")) {
     const videoId = url.split("/").pop();
     return videoId ? `https://www.tiktok.com/embed/v2/${videoId}` : null;
@@ -192,7 +187,6 @@ export const markdownComponents: Components = {
       );
     }
 
-    // Handle regular images with proper sizing
     const imgHeight = height ? parseInt(height.toString()) : undefined;
     const imgWidth = width ? parseInt(width.toString()) : undefined;
 

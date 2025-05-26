@@ -56,7 +56,6 @@ export function MarkdownViewer(props: ReactMarkdownProps) {
       resizeObserver.observe(editorRef.current);
     }
 
-    // Remove event listener on cleanup
     return () => {
       window.removeEventListener("resize", handleResize);
       if (element) {
@@ -118,7 +117,7 @@ export function MarkdownViewer(props: ReactMarkdownProps) {
             </span>
           </div>
         ) : isTruncated ? (
-          <div className="flex justify-center pt-2">
+          <div className="flex justify-center pt-5">
             <span
               onClick={handleShowMore}
               className="flex cursor-pointer items-center gap-1 rounded-full bg-[#F6F7F9] px-3 py-1.5 text-sm font-medium text-[#243A57]"

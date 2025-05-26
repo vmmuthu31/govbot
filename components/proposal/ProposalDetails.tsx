@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLinkIcon, Bot, User, ChevronDown } from "lucide-react";
+import { ExternalLinkIcon, Bot, User, ChevronDown, Wallet } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { ProposalWithMessages } from "@/lib/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
@@ -16,6 +16,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import styles from "./ProposalDetails.module.css";
 import { FiClock } from "react-icons/fi";
+import { WalletNudgeDialog } from "../wallet/WalletNudgeDialog";
 
 interface ProposalDetailsProps {
   proposal: ProposalWithMessages;
@@ -24,6 +25,14 @@ interface ProposalDetailsProps {
 export function ProposalDetails({ proposal }: ProposalDetailsProps) {
   const [activeTab, setActiveTab] = useState("details");
   const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(false);
+  const [walletNudgeOpen, setWalletNudgeOpen] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<{
+    address: string;
+    name?: string;
+    source: string;
+    type?: string;
+    genesisHash?: string;
+  } | null>(null);
 
   return (
     <div className="space-y-6">
@@ -152,17 +161,42 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                 </div>
               ))
             ) : (
-              <div className="flex flex-col items-center justify-center p-4 text-center">
+              <div className="flex flex-col items-center justify-center p-4 text-center space-y-4">
                 <Bot className="mb-2 h-8 w-8 text-muted-foreground" />
-                <p className="text-muted-foreground">
-                  No chat history yet. Start a conversation with GovBot to
-                  discuss this proposal.
+                <div className="space-y-2">
+                  <p className="text-muted-foreground">No chat history yet.</p>
+                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <Wallet className="h-4 w-4" />
+                    <span>
+                      Connect your wallet to start chatting with GovBot
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setWalletNudgeOpen(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 dark:from-purple-950 dark:to-pink-950 border border-purple-200 dark:border-purple-800 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md"
+                >
+                  🚀 Connect Wallet & Start Chatting
+                </button>
+                <p className="text-xs text-muted-foreground max-w-md">
+                  Only the proposer can chat with this proposal. Connect your
+                  wallet to verify your identity and start the conversation.
                 </p>
               </div>
             )}
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Wallet Nudge Dialog */}
+      <WalletNudgeDialog
+        open={walletNudgeOpen}
+        onOpenChange={setWalletNudgeOpen}
+        onAccountSelected={setSelectedAccount}
+        selectedAccount={selectedAccount}
+        title="🎯 Ready to Discuss This Proposal?"
+        description="Connect your wallet to verify you're the proposer and start an engaging conversation with GovBot about your proposal!"
+      />
     </div>
   );
 }
