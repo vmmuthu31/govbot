@@ -15,6 +15,7 @@ interface ReactMarkdownProps {
   className?: string;
   truncate?: boolean;
   maxLines?: number;
+  displayShowMore?: boolean;
   onShowMore?: () => void;
 }
 
@@ -24,6 +25,7 @@ export function MarkdownViewer(props: ReactMarkdownProps) {
     className,
     truncate = false,
     maxLines = 4,
+    displayShowMore = true,
     onShowMore,
   } = props;
   const [showMore, setShowMore] = useState(false);
@@ -106,6 +108,7 @@ export function MarkdownViewer(props: ReactMarkdownProps) {
         </ReactMarkdown>
       </div>
       {truncate &&
+        displayShowMore &&
         (showMore ? (
           <div className="flex justify-center pt-2">
             <span
