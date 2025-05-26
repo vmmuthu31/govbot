@@ -124,13 +124,17 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
           </Collapsible>
 
           {/* Full Proposal Content */}
-          <div className="rounded-md border bg-muted/30 p-4 max-h-[300px] overflow-y-auto">
-            <div className="overflow-x-auto">
-              <MarkdownViewer
-                truncate={true}
-                maxLines={4}
-                markdown={proposal.description}
-              />
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-foreground">
+              📄 Proposal Description
+            </h4>
+            <div className="rounded-md border bg-muted/30 p-4 max-h-[400px] overflow-y-auto">
+              <div className="overflow-x-auto">
+                <MarkdownViewer
+                  truncate={false}
+                  markdown={proposal.description}
+                />
+              </div>
             </div>
           </div>
         </TabsContent>

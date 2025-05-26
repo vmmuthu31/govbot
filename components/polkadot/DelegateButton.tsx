@@ -100,17 +100,33 @@ export function DelegateButton() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="hidden md:inline-flex">
-          <Vote className="mr-2 h-4 w-4" />
-          Delegate to GovBot
+        <Button
+          variant="outline"
+          size="sm"
+          className="hidden md:inline-flex gap-2"
+        >
+          <div className="relative">
+            <Vote className="h-4 w-4 text-primary" />
+            <div className="absolute -top-1 -right-1 h-2 w-2 bg-blue-500 rounded-full animate-pulse"></div>
+          </div>
+          <span className="hidden lg:inline">Delegate to GovBot</span>
+          <span className="lg:hidden">Delegate</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Delegate Voting Power to GovBot</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <div className="relative">
+              <Vote className="h-5 w-5 text-primary" />
+              <UsersRound className="h-3 w-3 text-blue-500 absolute -bottom-1 -right-1" />
+            </div>
+            Delegate Voting Power to GovBot
+          </DialogTitle>
           <DialogDescription>
-            Delegate your DOT tokens to GovBot to increase its voting power for
-            OpenGov referenda.
+            Increase GovBot&apos;s influence in Polkadot governance by
+            delegating your {networkConfig.currency.symbol} tokens. Your tokens
+            remain yours while GovBot votes on your behalf with transparent,
+            AI-driven decisions.
           </DialogDescription>
         </DialogHeader>
 
@@ -194,24 +210,33 @@ export function DelegateButton() {
               </p>
             </div>
 
-            <div className="rounded-md bg-muted/50 p-3 text-sm">
-              <div className="flex items-center gap-2">
-                <UsersRound className="h-4 w-4 text-muted-foreground" />
-                <p>
-                  By delegating, you&apos;re giving GovBot the authority to vote
-                  on your behalf, but your tokens remain yours.
-                </p>
-              </div>
-              <div className="mt-2 flex justify-center">
-                <a
-                  href="https://wiki.polkadot.network/docs/learn-opengov#conviction-voting"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center text-xs text-primary hover:underline"
-                >
-                  Learn more about delegations
-                  <ExternalLink className="ml-1 h-3 w-3" />
-                </a>
+            <div className="rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border border-blue-200 dark:border-blue-800 p-4 text-sm">
+              <div className="flex items-start gap-3">
+                <div className="relative">
+                  <UsersRound className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <div className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full"></div>
+                </div>
+                <div className="space-y-2">
+                  <p className="font-medium text-blue-900 dark:text-blue-100">
+                    🤝 Safe & Transparent Delegation
+                  </p>
+                  <p className="text-blue-800 dark:text-blue-200">
+                    By delegating, you&apos;re giving GovBot the authority to
+                    vote on your behalf, but your tokens remain yours and can be
+                    undelegated anytime.
+                  </p>
+                  <div className="flex justify-center pt-1">
+                    <a
+                      href="https://wiki.polkadot.network/docs/learn-opengov#conviction-voting"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                    >
+                      📚 Learn more about delegations
+                      <ExternalLink className="ml-1 h-3 w-3" />
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
 

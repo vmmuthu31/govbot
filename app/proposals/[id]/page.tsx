@@ -177,7 +177,7 @@ export default function ProposalDetailPage({
                     Overview and on-chain information
                   </p>
                 </div>
-                <div className="rounded-lg border bg-card shadow-sm max-h-[500px] sm:max-h-[600px] lg:max-h-[700px] xl:max-h-[800px] overflow-y-auto">
+                <div className="rounded-lg border bg-card shadow-sm">
                   <div className="p-4 space-y-6">
                     <ProposalDetails proposal={proposal} />
                     <OnChainInfo

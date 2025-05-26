@@ -237,9 +237,9 @@ export function WalletConnect({
 
   if (!isClient) {
     return (
-      <Button variant="outline" size="sm" disabled>
-        <Wallet className="mr-2 h-4 w-4" />
-        Loading...
+      <Button variant="outline" size="sm" disabled className="gap-2">
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent"></div>
+        <span className="hidden sm:inline">Loading...</span>
       </Button>
     );
   }
@@ -269,12 +269,14 @@ export function WalletConnect({
             <Button
               variant="outline"
               size="sm"
-              className="min-w-[180px] justify-between"
+              className="min-w-[140px] sm:min-w-[180px] justify-between gap-2"
             >
-              <div className="flex items-center">
-                <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Wallet className="h-4 w-4 text-primary" />
+                  <div className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full"></div>
+                </div>
                 <div className="flex flex-col items-start">
-                  <span className="text-xs text-muted-foreground"></span>
                   <span className="text-sm font-mono">
                     {displayAccount
                       ? formatAddress(displayAccount.address)
@@ -282,17 +284,23 @@ export function WalletConnect({
                   </span>
                 </div>
               </div>
-              <ChevronDown className="ml-2 h-4 w-4" />
+              <ChevronDown className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[300px]">
-            <div className="px-2 py-1.5">
-              <p className="text-sm font-medium">
-                {getWalletDisplayName(connectedWallet.name)}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {connectedWallet.accounts.length} account(s) available
-              </p>
+          <DropdownMenuContent align="end" className="w-[320px]">
+            <div className="px-3 py-2 border-b bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">
+                    {getWalletDisplayName(connectedWallet.name)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {connectedWallet.accounts.length} account(s) • Polkadot
+                    ecosystem
+                  </p>
+                </div>
+              </div>
             </div>
             <DropdownMenuSeparator />
 
@@ -430,16 +438,20 @@ export function WalletConnect({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Wallet className="mr-2 h-4 w-4" />
-          Connect Wallet
+        <Button variant="outline" size="sm" className="gap-2">
+          <Wallet className="h-4 w-4" />
+          <span className="hidden sm:inline">Connect Wallet</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
-          <DialogTitle>Connect Wallet</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Wallet className="h-5 w-5 text-primary" />
+            Connect Your Polkadot Wallet
+          </DialogTitle>
           <DialogDescription>
-            Connect your Polkadot wallet to participate in governance
+            Connect your wallet to participate in Polkadot governance, chat with
+            GovBot, and delegate voting power
           </DialogDescription>
         </DialogHeader>
 
