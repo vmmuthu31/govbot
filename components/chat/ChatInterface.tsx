@@ -26,6 +26,8 @@ const WalletConnect = dynamic(
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { MarkdownViewer } from "../Markdown/MarkdownViewer";
 import { WalletNudgeDialog } from "../wallet/WalletNudgeDialog";
+import { useNetwork } from "@/lib/network-context";
+import { isSameAccount } from "@/utils/address";
 
 interface ChatInterfaceProps {
   proposal: ProposalWithMessages;
@@ -69,6 +71,7 @@ export function ChatInterface({
   proposal,
   initialMessages,
 }: ChatInterfaceProps) {
+  const { networkConfig } = useNetwork();
   const [messages, setMessages] = useState<ChatMessage[]>(
     Array.isArray(initialMessages) ? initialMessages : []
   );
@@ -88,12 +91,17 @@ export function ChatInterface({
     connectedAddress: string;
   } | null>(null);
   const [walletNudgeOpen, setWalletNudgeOpen] = useState(false);
+  const [currentChatCount, setCurrentChatCount] = useState(
+    proposal.chatCount || 0
+  );
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const checkProposalStatus = useCallback(async () => {
     try {
       setIsCheckingStatus(true);
-      const response = await fetch(`/api/proposals/status?id=${proposal.id}`);
+      const response = await fetch(
+        `/api/proposals/status?chainId=${proposal.chainId}&network=${proposal.network}`
+      );
       if (!response.ok) {
         throw new Error("Failed to fetch proposal status");
       }
@@ -105,11 +113,11 @@ export function ChatInterface({
     } finally {
       setIsCheckingStatus(false);
     }
-  }, [proposal.id]);
+  }, [proposal.chainId, proposal.network]);
 
   useEffect(() => {
     checkProposalStatus();
-  }, []);
+  }, [checkProposalStatus]);
 
   useEffect(() => {
     if (bottomRef.current) {
@@ -141,13 +149,13 @@ export function ChatInterface({
       setMessages((prevMessages) => [...prevMessages, userMessage]);
       setInput("");
 
-      const response = await fetch("/api/chat", {
+      const response = await fetch(`/api/chat?network=${networkConfig.id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          proposalId: proposal.id,
+          proposalId: proposal.chainId,
           message: userMessage.content,
           userAddress: selectedAccount.address,
         }),
@@ -177,6 +185,8 @@ export function ChatInterface({
           `Vote submitted to blockchain! TX Hash: ${data.txHash.slice(0, 8)}...`
         );
       }
+
+      setCurrentChatCount((prevCount) => prevCount + 1);
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message. Please try again.");
@@ -207,21 +217,21 @@ export function ChatInterface({
     (proposalStatus?.hasVote || !proposalStatus?.isActive)
   ) {
     return (
-      <div className="flex h-[600px] flex-col rounded-lg border bg-card text-card-foreground shadow">
-        <div className="flex items-center justify-between border-b px-4 py-2">
+      <div className="flex h-[500px] sm:h-[600px] lg:h-[700px] xl:h-[800px] flex-col rounded-lg border bg-card text-card-foreground shadow w-full max-w-full overflow-hidden">
+        <div className="flex items-center justify-between border-b px-2 sm:px-4 py-2">
           <div className="flex items-center">
             <Bot className="mr-2 h-5 w-5 text-primary" />
             <h3 className="text-sm font-medium">Chat with GovBot</h3>
           </div>
         </div>
-        <div className="flex flex-1 items-center justify-center p-4">
+        <div className="flex flex-1 items-center justify-center p-2 sm:p-4">
           <div className="text-center max-w-full">
             {proposalStatus?.hasVote ? (
               <>
                 <h4 className="text-lg font-medium">
                   Voted: {proposalStatus.vote?.decision}
                 </h4>
-                <div className="prose prose-sm dark:prose-invert max-h-[450px] my-5 overflow-y-auto text-left mx-auto">
+                <div className="prose prose-sm dark:prose-invert max-h-[200px] sm:max-h-[300px] lg:max-h-[450px] my-3 sm:my-5 overflow-y-auto text-left mx-auto">
                   <MarkdownViewer
                     markdown={proposalStatus.vote?.reasoning ?? ""}
                   />
@@ -246,25 +256,28 @@ export function ChatInterface({
   }
 
   return (
-    <div className="relative flex h-[600px] flex-col rounded-lg border bg-card text-card-foreground shadow">
+    <div className="relative flex h-[500px] sm:h-[600px] lg:h-[700px] xl:h-[800px] flex-col rounded-lg border bg-card text-card-foreground shadow w-full max-w-full overflow-hidden">
       {/* Account Status Bar */}
-      <div className="flex items-center justify-between border-b px-4 py-2">
+      <div className="flex items-center justify-between border-b px-2 sm:px-4 py-2">
         <div className="flex items-center">
           <Bot className="mr-2 h-5 w-5 text-primary" />
           <h3 className="text-sm font-medium">Chat with GovBot</h3>
+          <span className="ml-2 text-xs text-muted-foreground hidden sm:inline">
+            ({currentChatCount}/10 chats)
+          </span>
         </div>
         <div className="flex items-center gap-2">
           {selectedAccount && (
             <div className="flex items-center gap-2">
-              {selectedAccount.address === proposal.proposer ? (
+              {isSameAccount(selectedAccount.address, proposal.proposer) ? (
                 <div className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Proposer</span>
+                  <span className="hidden sm:inline">Proposer</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1 text-xs text-destructive bg-destructive/10 px-2 py-1 rounded-full">
                   <AlertCircle className="w-3 h-3" />
-                  <span>Wrong Account</span>
+                  <span className="hidden sm:inline">Wrong Account</span>
                 </div>
               )}
             </div>
@@ -274,14 +287,15 @@ export function ChatInterface({
 
       {/* Chat Content */}
       <div
-        className={`flex-1 flex flex-col ${
-          selectedAccount && selectedAccount.address !== proposal.proposer
+        className={`flex-1 flex flex-col overflow-hidden ${
+          selectedAccount &&
+          !isSameAccount(selectedAccount.address, proposal.proposer)
             ? "filter blur-[2px]"
             : ""
         }`}
       >
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4">
+        <ScrollArea className="flex-1 p-2 sm:p-4 overflow-hidden max-h-[400px] sm:max-h-[500px] lg:max-h-[600px] xl:max-h-[700px]">
+          <div className="space-y-4 max-w-full">
             {/* Proposer Validation Error */}
             {proposerValidationError && (
               <Alert variant="destructive" className="mb-4">
@@ -315,10 +329,13 @@ export function ChatInterface({
                       onAccountSelected={(account) => {
                         setSelectedAccount(account);
                         if (
-                          account?.address === proposerValidationError.proposer
+                          account &&
+                          isSameAccount(
+                            account.address,
+                            proposerValidationError.proposer
+                          )
                         ) {
                           setProposerValidationError(null);
-                          toast.success("Correct proposer account connected!");
                         }
                       }}
                       selectedAccount={selectedAccount}
@@ -376,7 +393,7 @@ export function ChatInterface({
         </ScrollArea>
 
         {/* Chat Input */}
-        <div className="border-t p-4">
+        <div className="border-t p-2 sm:p-4">
           <div className="flex items-end gap-2">
             <Textarea
               value={input}
@@ -385,18 +402,18 @@ export function ChatInterface({
               placeholder={
                 !selectedAccount
                   ? "Connect your wallet to start chatting..."
-                  : selectedAccount.address !== proposal.proposer
+                  : !isSameAccount(selectedAccount.address, proposal.proposer)
                   ? "Only the proposer can chat with this proposal..."
                   : "Type your message..."
               }
-              className="resize-none"
-              rows={2}
+              className="resize-none text-sm"
+              rows={1}
               disabled={
                 isLoading ||
                 isProposalLocked ||
                 isCheckingStatus ||
                 !selectedAccount ||
-                selectedAccount.address !== proposal.proposer
+                !isSameAccount(selectedAccount.address, proposal.proposer)
               }
             />
             <Button
@@ -408,7 +425,7 @@ export function ChatInterface({
                 isProposalLocked ||
                 isCheckingStatus ||
                 !selectedAccount ||
-                selectedAccount.address !== proposal.proposer
+                !isSameAccount(selectedAccount.address, proposal.proposer)
               }
             >
               {isLoading ? (
@@ -428,7 +445,7 @@ export function ChatInterface({
 
       {!selectedAccount ? (
         <div className="absolute inset-0 flex items-center justify-center bg-background/90 backdrop-blur-sm">
-          <div className="w-full max-w-md p-6 space-y-4">
+          <div className="w-full max-w-md mx-4 p-4 sm:p-6 space-y-4">
             <div className="text-center space-y-4">
               <div className="mx-auto w-16 h-16 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-full flex items-center justify-center">
                 <Wallet className="h-8 w-8 text-primary" />
@@ -459,9 +476,9 @@ export function ChatInterface({
             </div>
           </div>
         </div>
-      ) : selectedAccount.address !== proposal.proposer ? (
-        <div className="absolute inset-0 flex items-center justify-center  backdrop-blur-sm">
-          <div className="w-full max-w-md p-6 space-y-4">
+      ) : !isSameAccount(selectedAccount.address, proposal.proposer) ? (
+        <div className="absolute inset-0 flex items-center justify-center backdrop-blur-sm">
+          <div className="w-full max-w-md mx-4 p-4 sm:p-6 space-y-4">
             <div className="text-center space-y-4">
               <div className="mx-auto w-16 h-16 bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900 dark:to-red-900 rounded-full flex items-center justify-center">
                 <AlertCircle className="h-8 w-8 text-orange-500" />
@@ -522,20 +539,17 @@ export function ChatInterface({
         onAccountSelected={(account) => {
           setSelectedAccount(account);
           setWalletError(null);
-          if (account?.address === proposal.proposer) {
-            toast.success(
-              "🎉 Perfect! Proposer account connected successfully!"
-            );
-          }
         }}
         selectedAccount={selectedAccount}
         title={
-          selectedAccount && selectedAccount.address !== proposal.proposer
+          selectedAccount &&
+          !isSameAccount(selectedAccount.address, proposal.proposer)
             ? "🔄 Switch to Proposer Account"
             : "🎯 Ready to Chat with GovBot?"
         }
         description={
-          selectedAccount && selectedAccount.address !== proposal.proposer
+          selectedAccount &&
+          !isSameAccount(selectedAccount.address, proposal.proposer)
             ? `Connect the proposer account (${proposal.proposer.slice(
                 0,
                 8

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
+import { NetworkProvider } from "@/lib/network-context";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,8 +19,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className} suppressHydrationWarning>
-        <main className="min-h-screen bg-background">{children}</main>
-        <Toaster position="top-right" />
+        <NetworkProvider>
+          <main className="min-h-screen bg-background">{children}</main>
+          <Toaster position="top-right" />
+        </NetworkProvider>
       </body>
     </html>
   );

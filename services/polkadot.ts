@@ -3,7 +3,7 @@ import { ApiPromise, WsProvider } from "@polkadot/api";
 import { Keyring } from "@polkadot/keyring";
 import { cryptoWaitReady } from "@polkadot/util-crypto";
 import type { RefCountedProposal } from "@/lib/types";
-import { RPC_ENDPOINTS } from "@/lib/constants";
+import { NETWORKS, NetworkId } from "@/lib/constants";
 import type { AccountInfo } from "@polkadot/types/interfaces";
 import type { SubmittableExtrinsic } from "@polkadot/api/types";
 import type { EventRecord } from "@polkadot/types/interfaces";
@@ -27,6 +27,7 @@ class PolkadotService {
   private static instance: PolkadotService;
   private api: ApiPromise | null = null;
   private currentRpcIndex: number = 0;
+  private currentNetwork: NetworkId = "polkadot";
 
   private constructor() {}
 
@@ -38,18 +39,45 @@ class PolkadotService {
   }
 
   /**
+   * Set the current network
+   */
+  setNetwork(networkId: NetworkId): void {
+    if (this.currentNetwork !== networkId) {
+      this.currentNetwork = networkId;
+      this.currentRpcIndex = 0;
+      if (this.api) {
+        this.api.disconnect();
+        this.api = null;
+      }
+    }
+  }
+
+  /**
+   * Get current network configuration
+   */
+  getCurrentNetwork() {
+    return NETWORKS[this.currentNetwork];
+  }
+
+  /**
    * Initialize the Polkadot API connection with failover support
    */
-  async initApi(): Promise<ApiPromise> {
+  async initApi(networkId?: NetworkId): Promise<ApiPromise> {
+    if (networkId) {
+      this.setNetwork(networkId);
+    }
+
     if (this.api?.isConnected) {
       return this.api;
     }
 
-    for (let attempt = 0; attempt < RPC_ENDPOINTS.length; attempt++) {
+    const networkConfig = this.getCurrentNetwork();
+    const endpoints = networkConfig.rpcEndpoints;
+
+    for (let attempt = 0; attempt < endpoints.length; attempt++) {
       try {
         const endpoint =
-          process.env.POLKADOT_RPC_URL ||
-          RPC_ENDPOINTS[this.currentRpcIndex].url;
+          process.env.POLKADOT_RPC_URL || endpoints[this.currentRpcIndex].url;
         const provider = new WsProvider(endpoint);
 
         this.api = await ApiPromise.create({ provider });
@@ -62,16 +90,16 @@ class PolkadotService {
         return this.api;
       } catch (error) {
         console.error(
-          `Failed to connect to RPC ${
-            RPC_ENDPOINTS[this.currentRpcIndex].url
-          }:`,
+          `Failed to connect to RPC ${endpoints[this.currentRpcIndex].url}:`,
           error
         );
         await this.switchRpcEndpoint();
       }
     }
 
-    throw new Error("Failed to connect to any Polkadot RPC endpoint");
+    throw new Error(
+      `Failed to connect to any ${networkConfig.displayName} RPC endpoint`
+    );
   }
 
   /**
@@ -86,7 +114,9 @@ class PolkadotService {
       }
     }
 
-    this.currentRpcIndex = (this.currentRpcIndex + 1) % RPC_ENDPOINTS.length;
+    const networkConfig = this.getCurrentNetwork();
+    this.currentRpcIndex =
+      (this.currentRpcIndex + 1) % networkConfig.rpcEndpoints.length;
     this.api = null;
   }
 
@@ -339,7 +369,9 @@ class PolkadotService {
         botAddress
       )) as AccountInfo;
       const free = accountInfo.data.free.toString();
-      const dotAmount = Number(free) / 10_000_000_000;
+      const networkConfig = this.getCurrentNetwork();
+      const dotAmount =
+        Number(free) / Math.pow(10, networkConfig.currency.decimals);
 
       const delegations = await api.query.convictionVoting.votingFor.entries(
         botAddress
@@ -357,7 +389,8 @@ class PolkadotService {
         }
       }
 
-      const delegatedDot = delegatedAmount / 10_000_000_000;
+      const delegatedDot =
+        delegatedAmount / Math.pow(10, networkConfig.currency.decimals);
       const totalPower = dotAmount + delegatedDot;
 
       return totalPower.toString();
@@ -374,9 +407,12 @@ class PolkadotService {
    * @param referendumId The ID of the proposal to check
    * @returns Promise<boolean> True if the proposal is active, false otherwise
    */
-  async isProposalActive(referendumId: string): Promise<boolean> {
+  async isProposalActive(
+    referendumId: string,
+    networkId: string = "polkadot"
+  ): Promise<boolean> {
     try {
-      const api = await this.initApi();
+      const api = await this.initApi(networkId as NetworkId);
       const optInfo = await api.query.referenda.referendumInfoFor(referendumId);
       const info = optInfo.toJSON() as {
         ongoing?: {
@@ -395,14 +431,15 @@ class PolkadotService {
         killed?: boolean;
       };
 
-      return (
+      const isActive =
         !!info?.ongoing &&
         !info.approved &&
         !info.rejected &&
         !info.cancelled &&
         !info.timedOut &&
-        !info.killed
-      );
+        !info.killed;
+
+      return isActive;
     } catch (error) {
       console.error("Error checking proposal status:", error);
       throw new Error(
@@ -418,8 +455,10 @@ class PolkadotService {
         address
       )) as AccountInfo;
       const free = accountInfo.data.free.toString();
-      const dotAmount = Number(free) / 10_000_000_000;
-      return dotAmount.toString();
+      const networkConfig = this.getCurrentNetwork();
+      const amount =
+        Number(free) / Math.pow(10, networkConfig.currency.decimals);
+      return amount.toString();
     } catch (error) {
       console.error("Error getting voting power:", error);
       throw new Error(
@@ -656,7 +695,12 @@ class PolkadotService {
       const wallet = await this.getGovBotWallet();
 
       if (!balance && vote !== "abstain") {
-        balance = await this.getVotingPower(wallet.address);
+        const votingPowerDOT = await this.getVotingPower(wallet.address);
+        const networkConfig = this.getCurrentNetwork();
+        balance = (
+          parseFloat(votingPowerDOT) *
+          Math.pow(10, networkConfig.currency.decimals)
+        ).toString();
       }
 
       let voteValue;
@@ -764,7 +808,11 @@ class PolkadotService {
       const { ApiPromise, WsProvider } = await import("@polkadot/api");
       const { web3FromAddress } = await import("@polkadot/extension-dapp");
 
-      const wsProvider = new WsProvider("wss://rpc.polkadot.io");
+      const networkConfig = this.getCurrentNetwork();
+      const rpcUrl =
+        networkConfig.rpcEndpoints[0]?.url || "wss://rpc.polkadot.io";
+
+      const wsProvider = new WsProvider(rpcUrl);
       const api = await ApiPromise.create({ provider: wsProvider });
 
       const injector = await web3FromAddress(selectedAccount.address);
@@ -935,6 +983,59 @@ class PolkadotService {
       console.error("Error getting detailed balance:", error);
       throw new Error(
         "Failed to get detailed balance: " + (error as Error).message
+      );
+    }
+  }
+
+  /**
+   * Get all active (ongoing) proposals on the current network
+   * @returns Promise<string[]> Array of active proposal IDs
+   */
+  async getActiveProposals(): Promise<string[]> {
+    try {
+      const api = await this.initApi();
+      const referendaEntries =
+        await api.query.referenda.referendumInfoFor.entries();
+      const activeProposals: string[] = [];
+
+      for (const [key, optInfo] of referendaEntries) {
+        const refId = key.args[0].toString();
+        const info = optInfo.toJSON() as {
+          ongoing?: {
+            proposal: unknown;
+            track: string | number;
+            submissionDeposit: { who: string };
+          };
+          approved?: boolean;
+          rejected?: boolean;
+          cancelled?: boolean;
+          timedOut?: boolean;
+          killed?: boolean;
+        };
+
+        if (
+          info?.ongoing &&
+          !info.approved &&
+          !info.rejected &&
+          !info.cancelled &&
+          !info.timedOut &&
+          !info.killed
+        ) {
+          activeProposals.push(refId);
+        }
+      }
+
+      console.log(
+        `Found ${activeProposals.length} active proposals on ${
+          this.getCurrentNetwork().displayName
+        }:`,
+        activeProposals
+      );
+      return activeProposals;
+    } catch (error) {
+      console.error("Error fetching active proposals:", error);
+      throw new Error(
+        "Failed to fetch active proposals: " + (error as Error).message
       );
     }
   }

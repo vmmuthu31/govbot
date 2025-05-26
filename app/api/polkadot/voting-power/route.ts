@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { polkadotService } from "@/services/polkadot";
+import { NetworkId } from "@/lib/constants";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const url = new URL(request.url);
+    const network = (url.searchParams.get("network") ||
+      "polkadot") as NetworkId;
+
+    polkadotService.setNetwork(network);
     const votingPower = await polkadotService.getGovBotVotingPower();
+    const networkConfig = polkadotService.getCurrentNetwork();
 
     return NextResponse.json({
       address: process.env.POLKADOT_BOT_ADDRESS,
@@ -11,7 +18,7 @@ export async function GET() {
       formatted: `${new Intl.NumberFormat("en", {
         notation: "compact",
         maximumFractionDigits: 1,
-      }).format(parseFloat(votingPower))} DOT`,
+      }).format(parseFloat(votingPower))} ${networkConfig.currency.symbol}`,
     });
   } catch (error) {
     console.error("Error getting voting power:", error);
@@ -24,12 +31,18 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const url = new URL(request.url);
+    const network = (url.searchParams.get("network") ||
+      "polkadot") as NetworkId;
+
     const {
       address,
       amount,
       conviction = 1,
       tracks = [0],
     } = await request.json();
+
+    polkadotService.setNetwork(network);
 
     if (!address || !amount) {
       return NextResponse.json(

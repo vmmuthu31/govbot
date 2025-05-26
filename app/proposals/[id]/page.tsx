@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
+import { useSearchParams } from "next/navigation";
 import { RootLayout } from "@/components/layout/RootLayout";
 import { ProposalDetails } from "@/components/proposal/ProposalDetails";
 import { ChatInterface } from "@/components/chat/ChatInterface";
@@ -13,6 +14,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { NetworkId } from "@/lib/constants";
 
 interface ProposalDetailPageProps {
   params: Promise<{ id: string }>;
@@ -22,6 +24,8 @@ export default function ProposalDetailPage({
   params,
 }: ProposalDetailPageProps) {
   const { id } = use(params);
+  const searchParams = useSearchParams();
+  const network = (searchParams.get("network") || "polkadot") as NetworkId;
   const [proposal, setProposal] = useState<ProposalWithMessages | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,10 +34,10 @@ export default function ProposalDetailPage({
   useEffect(() => {
     const fetchProposal = async () => {
       try {
-        const response = await fetch(`/api/proposals/${id}`);
+        const response = await fetch(`/api/proposals/${id}?network=${network}`);
         if (!response.ok) {
           const data = await response.json();
-          if (response.status === 400 && data.status === "inactive") {
+          if (response.status === 404 && data.status === "inactive") {
             setError(data.error);
             setErrorStatus("inactive");
           } else {
@@ -57,7 +61,7 @@ export default function ProposalDetailPage({
     };
 
     fetchProposal();
-  }, [id]);
+  }, [id, network]);
 
   if (loading) {
     return (
@@ -108,7 +112,7 @@ export default function ProposalDetailPage({
                 <p className="mt-4 text-sm text-muted-foreground">
                   This proposal is no longer active. You can view it on{" "}
                   <a
-                    href={`https://polkadot.polkassembly.io/referenda/${id}`}
+                    href={`https://${network}.polkassembly.io/referenda/${id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline"
@@ -144,15 +148,44 @@ export default function ProposalDetailPage({
             <ArrowLeft className="mr-1 h-4 w-4" />
             Back to proposals
           </Link>
-          <div className="grid gap-8 md:grid-cols-5 grid-cols-1">
-            <div className="md:col-span-3 col-span-1 order-1">
-              <ProposalDetails proposal={proposal} />
+          <div className="grid gap-6 lg:gap-8 lg:grid-cols-3 grid-cols-1">
+            <div className="lg:col-span-2 col-span-1 order-1">
+              <div className="space-y-4">
+                <div className="text-center lg:text-left">
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
+                    💬 Chat with GovBot
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Discuss this proposal with our AI governance assistant
+                  </p>
+                </div>
+                <div className="sticky top-4">
+                  <ChatInterface
+                    proposal={proposal}
+                    initialMessages={messages}
+                  />
+                </div>
+              </div>
             </div>
-            <div className="md:col-span-2 col-span-1 order-2 space-y-8">
-              <ChatInterface proposal={proposal} initialMessages={messages} />
-              <OnChainInfo
-                proposal={proposal as unknown as RefCountedProposal}
-              />
+            <div className="lg:col-span-1 col-span-1 order-2 space-y-6">
+              <div className="space-y-6">
+                <div className="text-center lg:text-left">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    📋 Proposal Details
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Overview and on-chain information
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-card shadow-sm max-h-[500px] sm:max-h-[600px] lg:max-h-[700px] xl:max-h-[800px] overflow-y-auto">
+                  <div className="p-4 space-y-6">
+                    <ProposalDetails proposal={proposal} />
+                    <OnChainInfo
+                      proposal={proposal as unknown as RefCountedProposal}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

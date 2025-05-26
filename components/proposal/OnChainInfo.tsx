@@ -7,12 +7,14 @@ import { ExternalLink, Users, Info } from "lucide-react";
 import { Button } from "../ui/button";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import Link from "next/link";
+import { useNetwork } from "@/lib/network-context";
 
 interface OnChainInfoProps {
   proposal?: RefCountedProposal | null;
 }
 
 export function OnChainInfo({ proposal }: OnChainInfoProps) {
+  const { networkConfig } = useNetwork();
   const [loading, setLoading] = useState(!!!proposal);
   const [error, setError] = useState<string | null>(null);
   const [votingPower, setVotingPower] = useState<string | null>(null);
@@ -21,10 +23,14 @@ export function OnChainInfo({ proposal }: OnChainInfoProps) {
   useEffect(() => {
     const fetchOnChainData = async () => {
       try {
-        const vpResponse = await fetch("/api/polkadot/voting-power");
+        const vpResponse = await fetch(
+          `/api/polkadot/voting-power?network=${networkConfig.id}`
+        );
         if (vpResponse.ok) {
           const vpData = await vpResponse.json();
-          setVotingPower(vpData.formatted || "0 DOT");
+          setVotingPower(
+            vpData.formatted || `0 ${networkConfig.currency.symbol}`
+          );
           setBotAddress(vpData.address || null);
         }
       } catch (err) {
@@ -36,7 +42,7 @@ export function OnChainInfo({ proposal }: OnChainInfoProps) {
     };
 
     fetchOnChainData();
-  }, [proposal]);
+  }, [proposal, networkConfig.id, networkConfig.currency.symbol]);
 
   if (loading) {
     return (
@@ -61,20 +67,22 @@ export function OnChainInfo({ proposal }: OnChainInfoProps) {
     );
   }
 
-  const formatDOT = (value: string) => {
-    const amount = parseInt(value) / 10_000_000_000;
+  const formatCurrency = (value: string) => {
+    const amount =
+      parseInt(value) / Math.pow(10, networkConfig.currency.decimals);
     const formatter = new Intl.NumberFormat("en", {
       notation: "compact",
       maximumFractionDigits: 1,
     });
-    return `${formatter.format(amount)} DOT`;
+    return `${formatter.format(amount)} ${networkConfig.currency.symbol}`;
   };
 
-  const ayeVotes = formatDOT(proposal.tally.ayes);
-  const nayVotes = formatDOT(proposal.tally.nays);
+  const ayeVotes = formatCurrency(proposal?.tally?.ayes || "0");
+  const nayVotes = formatCurrency(proposal?.tally?.nays || "0");
 
   const totalVotes =
-    parseInt(proposal.tally.ayes) + parseInt(proposal.tally.nays);
+    parseInt(proposal?.tally?.ayes || "0") +
+    parseInt(proposal?.tally?.nays || "0");
   const ayePercentage =
     totalVotes === 0
       ? 0
@@ -85,13 +93,13 @@ export function OnChainInfo({ proposal }: OnChainInfoProps) {
       : Math.round((parseInt(proposal.tally.nays) / totalVotes) * 100);
 
   return (
-    <div className="space-y-4 rounded-lg border bg-card p-4 shadow-sm">
+    <div className="space-y-4 rounded-md border bg-muted/30 p-4">
       <h3 className="text-lg font-medium">On-Chain Data</h3>
 
       <div className="space-y-2 text-sm">
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Referendum ID:</span>
-          <span className="font-medium">{proposal.id}</span>
+          <span className="font-medium">{proposal.chainId}</span>
         </div>
 
         <div className="flex items-center justify-between">
@@ -110,7 +118,7 @@ export function OnChainInfo({ proposal }: OnChainInfoProps) {
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">Deposit Amount:</span>
             <span className="font-medium">
-              {formatDOT(proposal.decisionDeposit.amount)}
+              {formatCurrency(proposal.decisionDeposit.amount)}
             </span>
           </div>
         )}
@@ -163,7 +171,7 @@ export function OnChainInfo({ proposal }: OnChainInfoProps) {
             <div className="mt-2 text-xs text-muted-foreground">
               <span className="mr-1">Address:</span>
               <Link
-                href={`https://polkadot.subscan.io/account/${botAddress}`}
+                href={`${networkConfig.subscanUrl}/account/${botAddress}`}
                 target="_blank"
                 className="rounded bg-muted px-1 py-0.5"
               >
@@ -176,7 +184,7 @@ export function OnChainInfo({ proposal }: OnChainInfoProps) {
 
       <div className="pt-2">
         <a
-          href={`https://polkadot.subscan.io/referenda_v2/${proposal.id}`}
+          href={`${networkConfig.subscanUrl}/referenda_v2/${proposal.chainId}`}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full"

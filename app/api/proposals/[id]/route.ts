@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { polkadotService } from "@/services/polkadot";
+import { NetworkId } from "@/lib/constants";
+import prisma from "@/lib/db";
 
 export const GET = async (
   req: Request,
@@ -7,6 +9,9 @@ export const GET = async (
 ) => {
   try {
     const { id } = await params;
+    const url = new URL(req.url);
+    const network = (url.searchParams.get("network") ||
+      "polkadot") as NetworkId;
 
     if (!id) {
       return NextResponse.json(
@@ -15,9 +20,25 @@ export const GET = async (
       );
     }
 
-    const proposal = await polkadotService.fetchProposalById(id);
+    const dbProposal = await prisma.proposal.findFirst({
+      where: {
+        chainId: id,
+        network: network,
+      },
+      include: {
+        messages: true,
+        vote: true,
+      },
+    });
 
-    if (!proposal) {
+    if (dbProposal) {
+      return NextResponse.json({ proposal: dbProposal });
+    }
+
+    polkadotService.setNetwork(network);
+    const onChainProposal = await polkadotService.fetchProposalById(id);
+
+    if (!onChainProposal) {
       return NextResponse.json(
         {
           error: "This proposal is no longer active and cannot be voted on.",
@@ -27,7 +48,7 @@ export const GET = async (
       );
     }
 
-    return NextResponse.json({ proposal });
+    return NextResponse.json({ proposal: onChainProposal });
   } catch (error) {
     console.error("Error fetching proposal:", error);
     return NextResponse.json(

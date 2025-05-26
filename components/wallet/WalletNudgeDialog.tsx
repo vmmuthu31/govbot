@@ -87,7 +87,6 @@ export function WalletNudgeDialog({
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
   const [isInCooldown, setIsInCooldown] = useState(false);
 
-  // Only update when dialog opens, not on every selectedAccount change
   useEffect(() => {
     if (open) {
       const messageIndex = Math.floor(Math.random() * NUDGE_MESSAGES.length);
@@ -96,10 +95,8 @@ export function WalletNudgeDialog({
       setCurrentMessage(NUDGE_MESSAGES[messageIndex]);
       setCurrentGif(gifArray[gifIndex]);
     }
-  }, [open]); // Removed selectedAccount dependency to prevent rapid updates
+  }, [open]);
 
-  // Only update GIF when selectedAccount changes from null to account or vice versa
-  // with debouncing to prevent rapid updates
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (selectedAccount === null) {
@@ -109,7 +106,7 @@ export function WalletNudgeDialog({
         const gifIndex = Math.floor(Math.random() * SUCCESS_GIFS.length);
         setCurrentGif(SUCCESS_GIFS[gifIndex]);
       }
-    }, 300); // 300ms debounce
+    }, 300);
 
     return () => clearTimeout(timeoutId);
   }, [selectedAccount]);
@@ -143,10 +140,10 @@ export function WalletNudgeDialog({
 
   const handleNewGif = () => {
     const now = Date.now();
-    const cooldownPeriod = 2000; // 2 seconds cooldown
+    const cooldownPeriod = 2000;
 
     if (now - lastRefreshTime < cooldownPeriod) {
-      return; // Ignore if within cooldown period
+      return;
     }
 
     setLastRefreshTime(now);
@@ -156,7 +153,6 @@ export function WalletNudgeDialog({
     const newMessageIndex = Math.floor(Math.random() * NUDGE_MESSAGES.length);
     setCurrentMessage(NUDGE_MESSAGES[newMessageIndex]);
 
-    // Reset cooldown after period
     setTimeout(() => {
       setIsInCooldown(false);
     }, cooldownPeriod);
@@ -274,10 +270,6 @@ export function WalletNudgeDialog({
 
             <WalletConnect
               onAccountSelected={(account) => {
-                console.log(
-                  "WalletConnect onAccountSelected called with:",
-                  account
-                );
                 onAccountSelected(account);
               }}
               selectedAccount={selectedAccount}

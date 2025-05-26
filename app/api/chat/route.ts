@@ -4,10 +4,16 @@ import { generateChatResponse, generateVoteDecision } from "@/services/ai";
 import { v4 as uuidv4 } from "uuid";
 import { polkadotService } from "@/services/polkadot";
 import { validateVoteReadiness } from "@/lib/vote-validation";
+import { NetworkId } from "@/lib/constants";
+import { isSameAccount } from "@/utils/address";
+import { EProposalStatus } from "@/lib/types";
 
 export async function POST(req: NextRequest) {
   try {
     const { proposalId, message, userAddress } = await req.json();
+    const url = new URL(req.url);
+    const network = (url.searchParams.get("network") ||
+      "polkadot") as NetworkId;
 
     if (!proposalId || !message) {
       return NextResponse.json(
@@ -25,7 +31,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isActive = await polkadotService.isProposalActive(proposalId);
+    let isActive = false;
+    if (network === "paseo") {
+      const existingProposal = await prisma.proposal.findFirst({
+        where: { chainId: proposalId, network: network },
+      });
+      if (existingProposal) {
+        isActive = existingProposal.status === EProposalStatus.Active;
+      } else {
+        isActive = true;
+      }
+    } else {
+      polkadotService.setNetwork(network);
+      isActive = await polkadotService.isProposalActive(proposalId);
+    }
+
     if (!isActive) {
       return NextResponse.json(
         {
@@ -65,6 +85,7 @@ export async function POST(req: NextRequest) {
             onChainProposal.description || "No description available",
           proposer: onChainProposal.proposer,
           track: onChainProposal.track,
+          network: network,
           createdAt: new Date(),
         },
         include: {
@@ -81,7 +102,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (proposal.proposer !== userAddress) {
+    if (!isSameAccount(proposal.proposer, userAddress)) {
       return NextResponse.json(
         {
           error:
@@ -195,6 +216,8 @@ export async function POST(req: NextRequest) {
           | "aye"
           | "nay"
           | "abstain";
+
+        polkadotService.setNetwork(network);
         txHash = await polkadotService.submitVote(
           proposalId,
           onChainDecision,

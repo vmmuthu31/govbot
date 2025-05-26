@@ -1,11 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { polkadotService } from "@/services/polkadot";
 import { v4 as uuidv4 } from "uuid";
 import prisma from "@/lib/db";
 import { fetchProposalFromPolkassembly } from "@/services/polkasembly";
+import { NetworkId } from "@/lib/constants";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const searchParams = req.nextUrl.searchParams;
+    const network = (searchParams.get("network") || "polkadot") as NetworkId;
+    polkadotService.setNetwork(network);
     const onChainProposals = await polkadotService.fetchOnChainProposals();
 
     return NextResponse.json({
@@ -21,8 +25,11 @@ export async function GET() {
   }
 }
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
+    const searchParams = req.nextUrl.searchParams;
+    const network = (searchParams.get("network") || "polkadot") as NetworkId;
+    polkadotService.setNetwork(network);
     const onChainProposals = await polkadotService.fetchOnChainProposals();
 
     const savedProposals = [];
@@ -40,7 +47,10 @@ export async function POST() {
 
         let polkassemblyData;
         try {
-          polkassemblyData = await fetchProposalFromPolkassembly(proposal.id);
+          polkassemblyData = await fetchProposalFromPolkassembly(
+            proposal.id,
+            network
+          );
         } catch (polkErr) {
           console.warn(
             `Could not fetch from Polkassembly for proposal ${proposal.id}:`,
@@ -65,6 +75,7 @@ export async function POST() {
             description: polkassemblyData.description,
             proposer: polkassemblyData.proposer,
             track: polkassemblyData.track || proposal.track,
+            network,
             createdAt: new Date(polkassemblyData.createdAt),
             updatedAt: new Date(),
           },

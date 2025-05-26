@@ -35,14 +35,14 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
   } | null>(null);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Badge variant="outline">
               Track No: {proposal.track || "Unknown Track"}
             </Badge>
-            <Badge variant="secondary">Proposal ID: {proposal.id}</Badge>
+            <Badge variant="secondary">Proposal ID: {proposal.chainId}</Badge>
           </div>
           <div className="flex items-center text-sm text-muted-foreground">
             <FiClock className="mr-1 h-4 w-4" />
@@ -59,7 +59,7 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
         </div>
         <div className="flex gap-2">
           <a
-            href={`https://polkadot.polkassembly.io/referenda/${proposal.id}`}
+            href={`https://${proposal.network}.polkassembly.io/referenda/${proposal.chainId}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center text-sm text-primary underline-offset-4 hover:underline"
@@ -124,7 +124,7 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
           </Collapsible>
 
           {/* Full Proposal Content */}
-          <div className="rounded-md border bg-card p-4 shadow-sm overflow-hidden">
+          <div className="rounded-md border bg-muted/30 p-4 max-h-[300px] overflow-y-auto">
             <div className="overflow-x-auto">
               <MarkdownViewer
                 truncate={true}
@@ -135,7 +135,7 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
           </div>
         </TabsContent>
         <TabsContent value="chat" className="mt-4">
-          <div className="space-y-4 rounded-md border bg-card p-4 shadow-sm">
+          <div className="space-y-4 rounded-md border bg-muted/30 p-4 max-h-[400px] overflow-y-auto">
             {proposal?.messages?.length > 0 ? (
               proposal?.messages?.map((message, index) => (
                 <div key={index} className="border-b pb-3 last:border-0">

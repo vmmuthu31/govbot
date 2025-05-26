@@ -5,16 +5,19 @@ import {
   fetchProposalFromPolkassembly,
 } from "@/services/polkasembly";
 import { v4 as uuidv4 } from "uuid";
+import { NetworkId } from "@/lib/constants";
 
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
     const activeQuery = searchParams.get("activeQuery") || "";
     const importedQuery = searchParams.get("importedQuery") || "";
+    const network = (searchParams.get("network") || "polkadot") as NetworkId;
 
     const activeProposals = await prisma.proposal.findMany({
       where: {
         source: "active",
+        network,
         ...(activeQuery
           ? {
               OR: [
@@ -32,6 +35,7 @@ export async function GET(req: NextRequest) {
     const importedProposals = await prisma.proposal.findMany({
       where: {
         source: "imported",
+        network,
         ...(importedQuery
           ? {
               OR: [
@@ -58,13 +62,19 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
-    const polkassemblyProposals = await fetchActiveReferenda();
+    const searchParams = req.nextUrl.searchParams;
+    const network = (searchParams.get("network") || "polkadot") as NetworkId;
+    const polkassemblyProposals = await fetchActiveReferenda(network);
+
     const savedProposals = [];
     for (const proposal of polkassemblyProposals) {
-      const existingProposal = await prisma.proposal.findUnique({
-        where: { chainId: proposal.chainId },
+      const existingProposal = await prisma.proposal.findFirst({
+        where: {
+          chainId: proposal.chainId,
+          network: network,
+        },
       });
       if (!existingProposal) {
         const savedProposal = await prisma.proposal.create({
@@ -76,11 +86,16 @@ export async function POST() {
             proposer: proposal.proposer,
             track: proposal.track,
             source: "active",
+            network,
             createdAt: new Date(proposal.createdAt),
             updatedAt: new Date(),
           },
         });
         savedProposals.push(savedProposal);
+      } else {
+        console.info(
+          `Proposal ${proposal.chainId} already exists on ${network}`
+        );
       }
     }
     return NextResponse.json({
@@ -98,7 +113,8 @@ export async function POST() {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { chainId } = await req.json();
+    const { chainId, network: requestNetwork } = await req.json();
+    const network = (requestNetwork || "polkadot") as NetworkId;
     if (!chainId) {
       return NextResponse.json(
         { error: "Chain ID is required" },
@@ -114,7 +130,7 @@ export async function PUT(req: NextRequest) {
         proposal: existingProposal,
       });
     }
-    const proposal = await fetchProposalFromPolkassembly(chainId);
+    const proposal = await fetchProposalFromPolkassembly(chainId, network);
     const savedProposal = await prisma.proposal.create({
       data: {
         id: uuidv4(),
@@ -124,6 +140,7 @@ export async function PUT(req: NextRequest) {
         proposer: proposal.proposer,
         track: proposal.track,
         source: "imported",
+        network,
         createdAt: new Date(proposal.createdAt),
         updatedAt: new Date(),
       },

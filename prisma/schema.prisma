@@ -23,6 +23,8 @@ model Proposal {
   track       String?
   status      String    @default("active") 
   source      String    @default("active")
+  network     String    @default("polkadot")
+  chatCount   Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   messages    Message[]
@@ -43,7 +45,19 @@ model Vote {
   decision   String 
   reasoning  String
   conviction Int      @default(1)
+  score      Float?   
   votedAt    DateTime @default(now())
   proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
   proposalId String   @unique
+}
+
+model VoteHistory {
+  id          String   @id @default(uuid())
+  proposalId  String
+  decision    String
+  score       Float
+  reasoning   String
+  track       String?
+  network     String   @default("polkadot")
+  createdAt   DateTime @default(now())
 }

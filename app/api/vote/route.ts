@@ -3,10 +3,14 @@ import prisma from "@/lib/db";
 import { generateVoteDecision } from "@/services/ai";
 import { polkadotService } from "@/services/polkadot";
 import { v4 as uuidv4 } from "uuid";
+import { NetworkId } from "@/lib/constants";
 
 export async function POST(req: NextRequest) {
   try {
     const { proposalId, conviction = 1 } = await req.json();
+    const url = new URL(req.url);
+    const network = (url.searchParams.get("network") ||
+      "polkadot") as NetworkId;
 
     if (!proposalId) {
       return NextResponse.json(
@@ -15,6 +19,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    polkadotService.setNetwork(network);
     const isActive = await polkadotService.isProposalActive(proposalId);
     if (!isActive) {
       return NextResponse.json(
@@ -54,6 +59,7 @@ export async function POST(req: NextRequest) {
           description: onChainProposal.description || "On-chain proposal",
           proposer: onChainProposal.proposer,
           track: onChainProposal.track,
+          network: network,
           createdAt: new Date(),
         },
         include: {
@@ -76,6 +82,7 @@ export async function POST(req: NextRequest) {
 
     let txHash = "";
     try {
+      polkadotService.setNetwork(network);
       txHash = await polkadotService.submitVote(
         proposal.chainId,
         onChainDecision,

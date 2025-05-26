@@ -1,9 +1,39 @@
 import type { Proposal, Vote, Message } from "@/lib/generated/prisma";
+import type { NetworkId, NetworkConfig } from "./constants";
+
+export enum EProposalStatus {
+  DecisionDepositPlaced = "DecisionDepositPlaced",
+  Submitted = "Submitted",
+  Deciding = "Deciding",
+  ConfirmStarted = "ConfirmStarted",
+  ConfirmAborted = "ConfirmAborted",
+  Approved = "Approved",
+  Rejected = "Rejected",
+  Cancelled = "Cancelled",
+  TimedOut = "TimedOut",
+  Killed = "Killed",
+  Executed = "Executed",
+  Active = "active",
+}
+
+export const ACTIVE_PROPOSAL_STATUSES = [
+  EProposalStatus.DecisionDepositPlaced,
+  EProposalStatus.Submitted,
+  EProposalStatus.Deciding,
+  EProposalStatus.ConfirmStarted,
+  EProposalStatus.ConfirmAborted,
+];
 
 export type ProposalWithMessages = Proposal & {
   messages: Message[];
   vote: Vote | null;
 };
+
+export interface NetworkContextType {
+  selectedNetwork: NetworkId;
+  networkConfig: NetworkConfig;
+  setSelectedNetwork: (networkId: NetworkId) => void;
+}
 
 export interface PolkassemblyResponse {
   title: string;
@@ -63,9 +93,51 @@ export interface VoteResponse {
   proposalId: string;
 }
 
+export interface ProposalScore {
+  technicalFeasibility: number;
+  alignmentWithGoals: number;
+  economicImplications: number;
+  securityImplications: number;
+  communitySentiment: number;
+  trackSpecific: number;
+  overall: number;
+}
+
+export interface VoteDecisionWithScore {
+  decision: VoteDecision;
+  reasoning: string;
+  score: ProposalScore;
+  confidence: number;
+}
+
+export interface TrackValidation {
+  isValid: boolean;
+  expectedTracks: string[];
+  currentTrack: string;
+  recommendation?: string;
+}
+
+export interface CostAnalysis {
+  estimatedCost?: number;
+  costJustification?: string;
+  costEffectiveness: number;
+  budgetImpact?: string;
+}
+
+export interface VoteHistoryEntry {
+  id: string;
+  proposalId: string;
+  decision: VoteDecision;
+  score: number;
+  reasoning: string;
+  track?: string;
+  createdAt: Date;
+}
+
 export interface RefCountedProposal {
   id: string;
   track: string;
+  chainId?: string;
   submitted: string;
   proposer: string;
   proposal: string;

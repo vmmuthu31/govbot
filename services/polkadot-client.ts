@@ -42,17 +42,25 @@ class PolkadotClientService {
     delegateAddress: string,
     tracks: number[] = [
       0, 2, 34, 33, 32, 31, 30, 11, 1, 10, 12, 13, 14, 15, 20, 21,
-    ]
+    ],
+    networkId: string = "polkadot"
   ): Promise<string> {
     try {
       await cryptoWaitReady();
 
-      const wsProvider = new WsProvider("wss://rpc.polkadot.io");
+      const { NETWORKS } = await import("@/lib/constants");
+      const networkConfig = NETWORKS[networkId as keyof typeof NETWORKS];
+      const rpcUrl =
+        networkConfig?.rpcEndpoints[0]?.url || "wss://rpc.polkadot.io";
+
+      const wsProvider = new WsProvider(rpcUrl);
       const api = await ApiPromise.create({ provider: wsProvider });
 
       const injector = await web3FromAddress(selectedAccount.address);
 
-      const balance = BigInt(parseFloat(amount) * 10_000_000_000);
+      const balance = BigInt(
+        parseFloat(amount) * Math.pow(10, networkConfig.currency.decimals)
+      );
 
       const txs = tracks.map((track) =>
         api.tx.convictionVoting.delegate(
@@ -107,18 +115,27 @@ class PolkadotClientService {
   /**
    * Get voting power for a given address (browser-compatible)
    */
-  async getVotingPower(address: string): Promise<string> {
+  async getVotingPower(
+    address: string,
+    networkId: string = "polkadot"
+  ): Promise<string> {
     try {
-      const wsProvider = new WsProvider("wss://rpc.polkadot.io");
+      const { NETWORKS } = await import("@/lib/constants");
+      const networkConfig = NETWORKS[networkId as keyof typeof NETWORKS];
+      const rpcUrl =
+        networkConfig?.rpcEndpoints[0]?.url || "wss://rpc.polkadot.io";
+
+      const wsProvider = new WsProvider(rpcUrl);
       const api = await ApiPromise.create({ provider: wsProvider });
 
       const accountInfo = await api.query.system.account(address);
       const free = (accountInfo as any).data.free.toString();
-      const dotAmount = Number(free) / 10_000_000_000;
+      const amount =
+        Number(free) / Math.pow(10, networkConfig.currency.decimals);
 
       await api.disconnect();
 
-      return dotAmount.toString();
+      return amount.toString();
     } catch (error) {
       console.error("Error getting voting power:", error);
       throw new Error(

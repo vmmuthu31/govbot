@@ -75,7 +75,7 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
           </span>
           <div className="flex gap-2">
             <Link
-              href={`https://polkadot.polkassembly.io/referenda/${proposal.chainId}`}
+              href={`https://${proposal.network}.polkassembly.io/referenda/${proposal.chainId}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center rounded-md border border-input bg-background px-2.5 py-1 text-xs font-semibold shadow-sm transition-colors hover:bg-muted"
@@ -83,7 +83,7 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
               Polkassembly <ExternalLinkIcon className="ml-1 h-3 w-3" />
             </Link>
             <Link
-              href={`/proposals/${proposal.chainId}`}
+              href={`/proposals/${proposal.chainId}?network=${proposal.network}`}
               className="inline-flex items-center rounded-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
             >
               View & Chat

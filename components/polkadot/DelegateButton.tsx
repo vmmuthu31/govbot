@@ -32,8 +32,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useNetwork } from "@/lib/network-context";
 
 export function DelegateButton() {
+  const { networkConfig } = useNetwork();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [conviction, setConviction] = useState("1");
@@ -70,7 +72,8 @@ export function DelegateButton() {
         amount,
         parseInt(conviction),
         delegateAddress,
-        tracks
+        tracks,
+        networkConfig.id
       );
 
       setTxHash(txHash);

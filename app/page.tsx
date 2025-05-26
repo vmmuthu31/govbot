@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { RootLayout } from "@/components/layout/RootLayout";
 import { ProposalCard } from "@/components/proposal/ProposalCard";
@@ -21,9 +21,11 @@ import {
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { WalletNudgeDialog } from "@/components/wallet/WalletNudgeDialog";
+import { useNetwork } from "@/lib/network-context";
 
 export default function Home() {
   const router = useRouter();
+  const { networkConfig } = useNetwork();
   const [searchId, setSearchId] = useState("");
   const [activeProposals, setActiveProposals] = useState<
     ProposalWithMessages[]
@@ -52,10 +54,12 @@ export default function Home() {
     genesisHash?: string;
   } | null>(null);
 
-  const fetchProposals = async () => {
+  const fetchProposals = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/proposals`);
+      const response = await fetch(
+        `/api/proposals?network=${networkConfig.id}`
+      );
       if (response.ok) {
         const data = await response.json();
         setAllActiveProposals(data.activeProposals || []);
@@ -68,11 +72,11 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [networkConfig.id]);
 
   useEffect(() => {
     fetchProposals();
-  }, []);
+  }, [networkConfig.id, fetchProposals]);
 
   useEffect(() => {
     const q = activeSearch.trim().toLowerCase();
@@ -114,7 +118,7 @@ export default function Home() {
       const response = await fetch("/api/proposals", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chainId: importId }),
+        body: JSON.stringify({ chainId: importId, network: networkConfig.id }),
       });
       if (response.ok) {
         toast.success("Proposal imported successfully!");
@@ -134,13 +138,8 @@ export default function Home() {
 
   const handleRefresh = async () => {
     try {
-      const res = await fetch("/api/proposals", {
-        method: "GET",
-      });
-      if (res.ok) {
-        toast.success("Proposals refreshed");
-        router.refresh();
-      }
+      await fetchProposals();
+      toast.success("Proposals refreshed");
     } catch (err) {
       console.error("Error refreshing proposals:", err);
       toast.error("Failed to refresh proposals");
@@ -164,8 +163,9 @@ export default function Home() {
               OpenGov AI Governance Bot
             </h1>
             <p className="mx-auto max-w-[700px] text-lg text-muted-foreground">
-              GovBot helps evaluate and vote on Polkadot&apos;s OpenGov
-              referenda with transparent, reasoned participation.
+              GovBot helps evaluate and vote on {networkConfig.displayName}
+              &apos;s OpenGov referenda with transparent, reasoned
+              participation.
             </p>
             <div className="mx-auto max-w-[600px]">
               <div
