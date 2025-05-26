@@ -54,28 +54,48 @@ export default function Home() {
     genesisHash?: string;
   } | null>(null);
 
-  const fetchProposals = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `/api/proposals?network=${networkConfig.id}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setAllActiveProposals(data.activeProposals || []);
-        setAllImportedProposals(data.importedProposals || []);
-        setActiveProposals(data.activeProposals || []);
-        setImportedProposals(data.importedProposals || []);
+  const fetchProposals = useCallback(
+    async (shouldImportFresh = false) => {
+      setLoading(true);
+      try {
+        if (shouldImportFresh) {
+          try {
+            const importResponse = await fetch(
+              `/api/proposals?network=${networkConfig.id}`,
+              {
+                method: "POST",
+              }
+            );
+            if (importResponse.ok) {
+              const importData = await importResponse.json();
+              console.info(`Fresh proposals imported: ${importData.message}`);
+            }
+          } catch (importError) {
+            console.warn("Failed to import fresh proposals:", importError);
+          }
+        }
+
+        const response = await fetch(
+          `/api/proposals?network=${networkConfig.id}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setAllActiveProposals(data.activeProposals || []);
+          setAllImportedProposals(data.importedProposals || []);
+          setActiveProposals(data.activeProposals || []);
+          setImportedProposals(data.importedProposals || []);
+        }
+      } catch {
+        toast.error("Failed to load proposals. Please try again later.");
+      } finally {
+        setLoading(false);
       }
-    } catch {
-      toast.error("Failed to load proposals. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  }, [networkConfig.id]);
+    },
+    [networkConfig.id]
+  );
 
   useEffect(() => {
-    fetchProposals();
+    fetchProposals(true);
   }, [networkConfig.id, fetchProposals]);
 
   useEffect(() => {
@@ -124,7 +144,7 @@ export default function Home() {
         toast.success("Proposal imported successfully!");
         setImportDialogOpen(false);
         setImportId("");
-        fetchProposals();
+        fetchProposals(false);
       } else {
         const errorData = await response.json();
         toast.error(errorData.error || "Failed to import proposal.");
@@ -138,8 +158,8 @@ export default function Home() {
 
   const handleRefresh = async () => {
     try {
-      await fetchProposals();
-      toast.success("Proposals refreshed");
+      await fetchProposals(true);
+      toast.success("Proposals refreshed successfully");
     } catch (err) {
       console.error("Error refreshing proposals:", err);
       toast.error("Failed to refresh proposals");

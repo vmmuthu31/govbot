@@ -121,8 +121,11 @@ export async function PUT(req: NextRequest) {
         { status: 400 }
       );
     }
-    const existingProposal = await prisma.proposal.findUnique({
-      where: { chainId },
+    const existingProposal = await prisma.proposal.findFirst({
+      where: {
+        chainId,
+        network,
+      },
     });
     if (existingProposal) {
       return NextResponse.json({

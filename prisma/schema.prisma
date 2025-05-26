@@ -16,7 +16,7 @@ datasource db {
 
 model Proposal {
   id          String    @id @default(uuid())
-  chainId     String    @unique 
+  chainId     String
   title       String
   description String
   proposer    String
@@ -29,6 +29,8 @@ model Proposal {
   updatedAt   DateTime  @updatedAt
   messages    Message[]
   vote        Vote?
+
+  @@unique([chainId, network])
 }
 
 model Message {

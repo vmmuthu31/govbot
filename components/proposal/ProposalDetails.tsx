@@ -49,7 +49,7 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
             <span>{formatDistanceToNow(proposal.createdAt)}</span>
           </div>
         </div>
-        <h1 className="text-2xl font-bold">{proposal.title}</h1>
+        <h1 className="text-xl font-bold">{proposal.title}</h1>
         <div className="flex items-center gap-1 text-sm text-muted-foreground">
           <User className="h-4 w-4" />
           <span>
