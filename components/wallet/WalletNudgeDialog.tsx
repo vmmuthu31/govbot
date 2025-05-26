@@ -84,7 +84,10 @@ export function WalletNudgeDialog({
   const [currentGif, setCurrentGif] = useState(WALLET_GIFS[0]);
   const [currentMessage, setCurrentMessage] = useState(NUDGE_MESSAGES[0]);
   const [isLoadingGif, setIsLoadingGif] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const [isInCooldown, setIsInCooldown] = useState(false);
 
+  // Only update when dialog opens, not on every selectedAccount change
   useEffect(() => {
     if (open) {
       const messageIndex = Math.floor(Math.random() * NUDGE_MESSAGES.length);
@@ -93,16 +96,22 @@ export function WalletNudgeDialog({
       setCurrentMessage(NUDGE_MESSAGES[messageIndex]);
       setCurrentGif(gifArray[gifIndex]);
     }
-  }, [open, selectedAccount]);
+  }, [open]); // Removed selectedAccount dependency to prevent rapid updates
 
+  // Only update GIF when selectedAccount changes from null to account or vice versa
+  // with debouncing to prevent rapid updates
   useEffect(() => {
-    if (selectedAccount === null) {
-      const gifIndex = Math.floor(Math.random() * WALLET_GIFS.length);
-      setCurrentGif(WALLET_GIFS[gifIndex]);
-    } else if (selectedAccount) {
-      const gifIndex = Math.floor(Math.random() * SUCCESS_GIFS.length);
-      setCurrentGif(SUCCESS_GIFS[gifIndex]);
-    }
+    const timeoutId = setTimeout(() => {
+      if (selectedAccount === null) {
+        const gifIndex = Math.floor(Math.random() * WALLET_GIFS.length);
+        setCurrentGif(WALLET_GIFS[gifIndex]);
+      } else if (selectedAccount) {
+        const gifIndex = Math.floor(Math.random() * SUCCESS_GIFS.length);
+        setCurrentGif(SUCCESS_GIFS[gifIndex]);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
   }, [selectedAccount]);
 
   const fetchRandomWalletGif = async () => {
@@ -133,9 +142,24 @@ export function WalletNudgeDialog({
   };
 
   const handleNewGif = () => {
+    const now = Date.now();
+    const cooldownPeriod = 2000; // 2 seconds cooldown
+
+    if (now - lastRefreshTime < cooldownPeriod) {
+      return; // Ignore if within cooldown period
+    }
+
+    setLastRefreshTime(now);
+    setIsInCooldown(true);
+
     fetchRandomWalletGif();
     const newMessageIndex = Math.floor(Math.random() * NUDGE_MESSAGES.length);
     setCurrentMessage(NUDGE_MESSAGES[newMessageIndex]);
+
+    // Reset cooldown after period
+    setTimeout(() => {
+      setIsInCooldown(false);
+    }, cooldownPeriod);
   };
 
   return (
@@ -163,10 +187,12 @@ export function WalletNudgeDialog({
               size="sm"
               className="absolute top-2 right-2 h-8 w-8 p-0 bg-white/80 hover:bg-white/90 dark:bg-black/80 dark:hover:bg-black/90"
               onClick={handleNewGif}
-              disabled={isLoadingGif}
+              disabled={isLoadingGif || isInCooldown}
             >
               <RefreshCw
-                className={`h-4 w-4 ${isLoadingGif ? "animate-spin" : ""}`}
+                className={`h-4 w-4 ${
+                  isLoadingGif || isInCooldown ? "animate-spin" : ""
+                }`}
               />
             </Button>
           </div>
