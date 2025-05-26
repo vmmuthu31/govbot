@@ -3,8 +3,8 @@
 import { CheckCircle, XCircle, HelpCircle } from "lucide-react";
 import type { Vote } from "@/lib/generated/prisma";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import ReactMarkdown from "react-markdown";
 import { formatDistanceToNow } from "@/utils/formatDistanceToNow";
+import { MarkdownViewer } from "../Markdown/MarkdownViewer";
 
 interface VoteSummaryProps {
   vote: Vote;
@@ -50,7 +50,7 @@ export function VoteSummary({ vote }: VoteSummaryProps) {
           </AlertTitle>
           <AlertDescription className="mt-2">
             <div className="prose prose-sm dark:prose-invert max-w-none">
-              <ReactMarkdown>{vote.reasoning}</ReactMarkdown>
+              <MarkdownViewer markdown={vote.reasoning} />
             </div>
             <div className="mt-4 text-xs text-muted-foreground">
               Voted with {vote.conviction}x conviction.

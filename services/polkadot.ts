@@ -270,6 +270,15 @@ class PolkadotService {
 
       let title: string | undefined;
       let description: string | undefined;
+      let contentSummary:
+        | {
+            createdAt: string;
+            indexOrHash: string;
+            id: string;
+            proposalType: string;
+            postSummary: string;
+          }
+        | undefined;
 
       try {
         const { fetchProposalFromPolkassembly } = await import(
@@ -280,6 +289,7 @@ class PolkadotService {
         );
         title = polkassemblyData.title;
         description = polkassemblyData.description;
+        contentSummary = polkassemblyData.contentSummary;
       } catch (polkassemblyError) {
         console.warn("Failed to fetch from Polkassembly:", polkassemblyError);
       }
@@ -305,6 +315,7 @@ class PolkadotService {
         },
         title,
         description,
+        contentSummary,
         createdAt: blockTimestamp,
       };
     } catch (error) {

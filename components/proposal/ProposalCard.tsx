@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
-import ReactMarkdown from "react-markdown";
+import { MarkdownViewer } from "../Markdown/MarkdownViewer";
 
 interface ProposalCardProps {
   proposal: Proposal & {
@@ -61,9 +61,7 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
           className="line-clamp-3 text-sm text-muted-foreground"
           style={{ overflow: "hidden" }}
         >
-          <ReactMarkdown>
-            {proposal.description.replace(/<[^>]*>?/gm, "")}
-          </ReactMarkdown>
+          <MarkdownViewer markdown={proposal.description} />
         </div>
       </CardContent>
       <CardFooter className="border-t bg-muted/10 p-4 mt-auto">

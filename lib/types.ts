@@ -11,6 +11,13 @@ export interface PolkassemblyResponse {
   created_at: string;
   proposer: string;
   track?: string;
+  contentSummary: {
+    createdAt: string;
+    indexOrHash: string;
+    id: string;
+    proposalType: string;
+    postSummary: string;
+  };
 }
 
 export interface InsertProposal {
@@ -20,6 +27,13 @@ export interface InsertProposal {
   proposer: string;
   track?: string;
   createdAt: string;
+  contentSummary: {
+    createdAt: string;
+    indexOrHash: string;
+    id: string;
+    proposalType: string;
+    postSummary: string;
+  };
 }
 
 export type ChatRole = "user" | "assistant";
@@ -67,6 +81,13 @@ export interface RefCountedProposal {
   title?: string;
   description?: string;
   createdAt?: Date;
+  contentSummary?: {
+    createdAt: string;
+    indexOrHash: string;
+    id: string;
+    proposalType: string;
+    postSummary: string;
+  };
 }
 
 export interface OnChainVote {

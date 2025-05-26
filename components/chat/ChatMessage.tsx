@@ -3,8 +3,8 @@
 import { Bot, User } from "lucide-react";
 import { ChatMessage as ChatMessageType } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import ReactMarkdown from "react-markdown";
 import { formatDistanceToNow } from "@/utils/formatDistanceToNow";
+import { MarkdownViewer } from "../Markdown/MarkdownViewer";
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -43,7 +43,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         <div className="prose prose-sm dark:prose-invert max-w-full break-words">
           {message.content.includes("\n") || message.content.includes("**") ? (
             <div className="prose prose-sm dark:prose-invert">
-              <ReactMarkdown>{message.content}</ReactMarkdown>
+              <MarkdownViewer markdown={message.content} />
             </div>
           ) : (
             message.content
