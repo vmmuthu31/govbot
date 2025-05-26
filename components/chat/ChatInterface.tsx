@@ -428,62 +428,90 @@ export function ChatInterface({
 
       {/* Wallet Connection Overlay */}
       {!selectedAccount ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+        <div className="absolute inset-0 flex items-center justify-center bg-background/90 backdrop-blur-sm">
           <div className="w-full max-w-md p-6 space-y-4">
-            <Alert>
-              <Wallet className="h-5 w-5" />
-              <AlertTitle>Connect Your Wallet</AlertTitle>
-              <AlertDescription>
-                Please connect your wallet to interact with this proposal.
-              </AlertDescription>
-            </Alert>
-            <WalletConnect
-              onAccountSelected={(account) => {
-                setSelectedAccount(account);
-                setWalletError(null);
-              }}
-              selectedAccount={selectedAccount}
-            />
+            <div className="text-center space-y-4">
+              <div className="mx-auto w-16 h-16 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-full flex items-center justify-center">
+                <Wallet className="h-8 w-8 text-primary" />
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-foreground">
+                  🚀 Ready to Join the Conversation?
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Connect your wallet to start chatting with GovBot about this
+                  proposal!
+                </p>
+              </div>
+
+              <Button
+                onClick={() => setWalletNudgeOpen(true)}
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-medium"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Connect Wallet to Chat
+                <Sparkles className="ml-2 h-4 w-4" />
+              </Button>
+
+              <p className="text-xs text-muted-foreground">
+                Experience our fun wallet connection flow! ✨
+              </p>
+            </div>
           </div>
         </div>
       ) : selectedAccount.address !== proposal.proposer ? (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center  backdrop-blur-sm">
           <div className="w-full max-w-md p-6 space-y-4">
-            <Alert variant="destructive">
-              <AlertCircle className="h-5 w-5" />
-              <AlertTitle>Wrong Account Detected</AlertTitle>
-              <AlertDescription className="space-y-4">
-                <p>
-                  Only the proposer can chat with this proposal. Please connect
-                  the correct account.
+            <div className="text-center space-y-4">
+              <div className="mx-auto w-16 h-16 bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900 dark:to-red-900 rounded-full flex items-center justify-center">
+                <AlertCircle className="h-8 w-8 text-orange-500" />
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-foreground">
+                  🔐 Oops! Wrong Account Detected
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Only the proposer can chat with this proposal. Let&apos;s get
+                  you connected with the right account!
                 </p>
-                <div className="space-y-2 text-sm bg-muted p-3 rounded-md">
-                  <div>
-                    <span className="font-medium">Required Address:</span>
-                    <code className="block mt-1 bg-background px-2 py-1 rounded text-xs">
-                      {proposal.proposer.slice(0, 6)}...
-                      {proposal.proposer.slice(-6)}
-                    </code>
-                  </div>
-                  <div>
-                    <span className="font-medium">Connected Address:</span>
-                    <code className="block mt-1 bg-background px-2 py-1 rounded text-xs">
-                      {selectedAccount.address.slice(0, 6)}...
-                      {selectedAccount.address.slice(-6)}
-                    </code>
-                  </div>
+              </div>
+
+              <div className="p-4 bg-muted/50 rounded-lg space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-green-600 dark:text-green-400">
+                    Required:
+                  </span>
+                  <code className="bg-green-100 dark:bg-green-900 px-2 py-1 rounded text-xs">
+                    {proposal.proposer.slice(0, 8)}...
+                    {proposal.proposer.slice(-8)}
+                  </code>
                 </div>
-                <WalletConnect
-                  onAccountSelected={(account) => {
-                    setSelectedAccount(account);
-                    if (account?.address === proposal.proposer) {
-                      toast.success("Correct proposer account connected!");
-                    }
-                  }}
-                  selectedAccount={selectedAccount}
-                />
-              </AlertDescription>
-            </Alert>
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-orange-600 dark:text-orange-400">
+                    Connected:
+                  </span>
+                  <code className="bg-orange-100 dark:bg-orange-900 px-2 py-1 rounded text-xs">
+                    {selectedAccount.address.slice(0, 8)}...
+                    {selectedAccount.address.slice(-8)}
+                  </code>
+                </div>
+              </div>
+
+              <Button
+                onClick={() => setWalletNudgeOpen(true)}
+                className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-medium"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Switch to Proposer Account
+                <Sparkles className="ml-2 h-4 w-4" />
+              </Button>
+
+              <p className="text-xs text-muted-foreground">
+                Click above for a fun wallet switching experience! 🎯
+              </p>
+            </div>
           </div>
         </div>
       ) : null}
@@ -495,10 +523,28 @@ export function ChatInterface({
         onAccountSelected={(account) => {
           setSelectedAccount(account);
           setWalletError(null);
+          if (account?.address === proposal.proposer) {
+            toast.success(
+              "🎉 Perfect! Proposer account connected successfully!"
+            );
+          }
         }}
         selectedAccount={selectedAccount}
-        title="🎯 Ready to Chat with GovBot?"
-        description="Connect your wallet to start discussing this proposal with our AI governance assistant. Your insights matter!"
+        title={
+          selectedAccount && selectedAccount.address !== proposal.proposer
+            ? "🔄 Switch to Proposer Account"
+            : "🎯 Ready to Chat with GovBot?"
+        }
+        description={
+          selectedAccount && selectedAccount.address !== proposal.proposer
+            ? `Connect the proposer account (${proposal.proposer.slice(
+                0,
+                8
+              )}...${proposal.proposer.slice(
+                -8
+              )}) to start chatting about this proposal with GovBot!`
+            : "Connect your wallet to start discussing this proposal with our AI governance assistant. Your insights matter!"
+        }
       />
     </div>
   );
