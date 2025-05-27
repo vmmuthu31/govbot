@@ -37,8 +37,8 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
       <div className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Badge variant="outline">{proposal.track || "Unknown Track"}</Badge>
             <Badge variant="secondary"># {proposal.chainId}</Badge>
+            <Badge variant="outline">{proposal.track || "Unknown Track"}</Badge>
           </div>
           <div className="flex items-center text-xs text-muted-foreground">
             <FiClock className="mr-1 h-4 w-4" />
