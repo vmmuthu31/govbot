@@ -356,9 +356,9 @@ class PolkadotService {
     }
   }
 
-  async getGovBotVotingPower(): Promise<string> {
+  async getGovBotVotingPower(networkId?: NetworkId): Promise<string> {
     try {
-      const api = await this.initApi();
+      const api = await this.initApi(networkId);
       const botAddress = process.env.POLKADOT_BOT_ADDRESS;
 
       if (!botAddress) {
@@ -369,9 +369,6 @@ class PolkadotService {
         botAddress
       )) as AccountInfo;
       const free = accountInfo.data.free.toString();
-      const networkConfig = this.getCurrentNetwork();
-      const dotAmount =
-        Number(free) / Math.pow(10, networkConfig.currency.decimals);
 
       const delegations = await api.query.convictionVoting.votingFor.entries(
         botAddress
@@ -389,11 +386,8 @@ class PolkadotService {
         }
       }
 
-      const delegatedDot =
-        delegatedAmount / Math.pow(10, networkConfig.currency.decimals);
-      const totalPower = dotAmount + delegatedDot;
-
-      return totalPower.toString();
+      const totalPowerPlanck = BigInt(free) + BigInt(delegatedAmount);
+      return totalPowerPlanck.toString();
     } catch (error) {
       console.error("Error getting GovBot voting power:", error);
       throw new Error(
@@ -448,17 +442,18 @@ class PolkadotService {
     }
   }
 
-  async getVotingPower(address: string): Promise<string> {
+  async getVotingPower(
+    address: string,
+    networkId?: NetworkId
+  ): Promise<string> {
     try {
-      const api = await this.initApi();
+      const api = await this.initApi(networkId);
       const accountInfo = (await api.query.system.account(
         address
       )) as AccountInfo;
       const free = accountInfo.data.free.toString();
-      const networkConfig = this.getCurrentNetwork();
-      const amount =
-        Number(free) / Math.pow(10, networkConfig.currency.decimals);
-      return amount.toString();
+
+      return free;
     } catch (error) {
       console.error("Error getting voting power:", error);
       throw new Error(
@@ -498,7 +493,10 @@ class PolkadotService {
       const api = await this.initApi();
       await cryptoWaitReady();
 
-      const balance = BigInt(parseFloat(amount) * 10_000_000_000);
+      const networkConfig = this.getCurrentNetwork();
+      const balance = BigInt(
+        parseFloat(amount) * Math.pow(10, networkConfig.currency.decimals)
+      );
 
       const txs = tracks.map((track) =>
         api.tx.convictionVoting.delegate(
@@ -544,7 +542,10 @@ class PolkadotService {
       const api = await this.initApi();
       await cryptoWaitReady();
 
-      const balance = BigInt(parseFloat(amount) * 10_000_000_000);
+      const networkConfig = this.getCurrentNetwork();
+      const balance = BigInt(
+        parseFloat(amount) * Math.pow(10, networkConfig.currency.decimals)
+      );
 
       const txs = tracks.map((track) =>
         api.tx.convictionVoting.delegate(
@@ -817,7 +818,9 @@ class PolkadotService {
 
       const injector = await web3FromAddress(selectedAccount.address);
 
-      const balance = BigInt(parseFloat(amount) * 10_000_000_000);
+      const balance = BigInt(
+        parseFloat(amount) * Math.pow(10, networkConfig.currency.decimals)
+      );
 
       const txs = tracks.map((track) =>
         api.tx.convictionVoting.delegate(
@@ -911,7 +914,10 @@ class PolkadotService {
    * @param address Optional address to check (defaults to GovBot wallet address)
    * @returns Promise with detailed balance information
    */
-  async getDetailedBalance(address?: string): Promise<{
+  async getDetailedBalance(
+    address?: string,
+    networkId?: NetworkId
+  ): Promise<{
     address: string;
     free: string;
     reserved: string;
@@ -927,7 +933,7 @@ class PolkadotService {
     };
   }> {
     try {
-      const api = await this.initApi();
+      const api = await this.initApi(networkId);
 
       let targetAddress = address;
       if (!targetAddress) {
@@ -960,8 +966,13 @@ class PolkadotService {
       const transferableAmount =
         freeAmount > frozenAmount ? freeAmount - frozenAmount : BigInt(0);
 
+      const networkConfig = networkId
+        ? NETWORKS[networkId]
+        : this.getCurrentNetwork();
+      const decimals = Math.pow(10, networkConfig.currency.decimals);
+
       const formatAmount = (amount: bigint): string => {
-        return (Number(amount) / 10_000_000_000).toFixed(10);
+        return (Number(amount) / decimals).toFixed(10);
       };
 
       return {
