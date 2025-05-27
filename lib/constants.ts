@@ -25,36 +25,24 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
     isTestnet: false,
     rpcEndpoints: [
       {
-        name: "Parity (recommended)",
-        url: "wss://rpc.polkadot.io",
+        name: "via Parity",
+        url: "wss://polkadot-people-rpc.polkadot.io",
       },
       {
-        name: "OnFinality",
-        url: "wss://polkadot.api.onfinality.io/public-ws",
+        name: "via LuckyFriday",
+        url: "wss://rpc-people-polkadot.luckyfriday.io",
       },
       {
-        name: "Dwellir",
-        url: "wss://polkadot-rpc.dwellir.com",
+        name: "via RadiumBlock",
+        url: "wss://people-polkadot.public.curie.radiumblock.co/ws",
       },
       {
-        name: "PinkNode",
-        url: "wss://public-rpc.pinknode.io/polkadot",
+        name: "via IBP-GeoDNS1",
+        url: "wss://sys.ibp.network/people-polkadot",
       },
       {
-        name: "IBP GeoDNS1",
-        url: "wss://rpc.ibp.network/polkadot",
-      },
-      {
-        name: "IBP GeoDNS2",
-        url: "wss://rpc.dotters.network/polkadot",
-      },
-      {
-        name: "RadiumBlock",
-        url: "wss://polkadot.public.curie.radiumblock.co/ws",
-      },
-      {
-        name: "LuckyFriday",
-        url: "wss://rpc-polkadot.luckyfriday.io",
+        name: "via IBP-GeoDNS2",
+        url: "wss://people-polkadot.dotters.network",
       },
     ],
     polkassemblyUrl: "https://polkadot.polkassembly.io",
@@ -71,20 +59,16 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
     isTestnet: true,
     rpcEndpoints: [
       {
-        name: "Parity (recommended)",
-        url: "wss://paseo-rpc.dwellir.com",
+        name: "via IBP 1",
+        url: "wss://sys.ibp.network/people-paseo",
       },
       {
-        name: "IBP Network",
-        url: "wss://rpc.ibp.network/paseo",
+        name: "via IBP 2",
+        url: "wss://people-paseo.dotters.network",
       },
       {
-        name: "Zondax",
-        url: "wss://api2.zondax.ch/pas/node/rpc",
-      },
-      {
-        name: "Amforc",
-        url: "wss://paseo.rpc.amforc.com",
+        name: "via Armfoc",
+        url: "wss://people-paseo.rpc.amforc.com",
       },
     ],
     polkassemblyUrl: "https://paseo.polkassembly.io",
