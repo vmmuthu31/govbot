@@ -35,6 +35,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useNetwork } from "@/lib/network-context";
+import { formatBnBalance } from "@/utils/formatBnBalance";
 
 type WalletAccount = {
   address: string;
@@ -66,10 +68,63 @@ export function WalletConnect({
     useState<ConnectedWallet | null>(null);
   const [selectedWallet, setSelectedWallet] = useState<string>("");
   const [isClient, setIsClient] = useState(false);
+  const [accountBalances, setAccountBalances] = useState<
+    Record<string, string>
+  >({});
+  const [loadingBalances, setLoadingBalances] = useState(false);
+  const { networkConfig } = useNetwork();
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const fetchAccountBalances = async (wallet: ConnectedWallet) => {
+    if (!isClient || !wallet.accounts.length) return;
+
+    setLoadingBalances(true);
+    const balances: Record<string, string> = {};
+
+    try {
+      const { polkadotClientService } = await import(
+        "@/services/polkadot-client"
+      );
+
+      const balancePromises = wallet.accounts.map(async (account) => {
+        try {
+          const userBalances = await polkadotClientService.getUserBalances(
+            account.address,
+            networkConfig.id
+          );
+          const formattedBalance = formatBnBalance(
+            userBalances?.totalBalance?.toString() || "0",
+            { numberAfterComma: 2, withUnit: true },
+            networkConfig.id
+          );
+          return { address: account.address, balance: formattedBalance };
+        } catch (error) {
+          console.error(
+            `Error fetching balance for ${account.address}:`,
+            error
+          );
+          return {
+            address: account.address,
+            balance: "0.00 " + networkConfig.currency.symbol,
+          };
+        }
+      });
+
+      const results = await Promise.all(balancePromises);
+      results.forEach(({ address, balance }) => {
+        balances[address] = balance;
+      });
+
+      setAccountBalances(balances);
+    } catch (error) {
+      console.error("Error fetching account balances:", error);
+    } finally {
+      setLoadingBalances(false);
+    }
+  };
 
   useEffect(() => {
     if (!isClient) return;
@@ -112,6 +167,12 @@ export function WalletConnect({
 
     loadPersistedState();
   }, [isClient, onAccountSelected]);
+
+  useEffect(() => {
+    if (connectedWallet && isClient) {
+      fetchAccountBalances(connectedWallet);
+    }
+  }, [connectedWallet, networkConfig.id, isClient]);
 
   useEffect(() => {
     if (!isClient || typeof window === "undefined") {
@@ -312,12 +373,28 @@ export function WalletConnect({
                     Current Account
                   </p>
                   <p className="text-sm font-medium">
-                    {displayAccount.name || "Unnamed Account"}
+                    Username: {displayAccount.name || "Unnamed Account"}
                   </p>
                   <p className="text-xs text-muted-foreground font-mono">
-                    {displayAccount.address.slice(0, 6)}...
+                    Address: {displayAccount.address.slice(0, 6)}...
                     {displayAccount.address.slice(-6)}
                   </p>
+                  <div className="mt-1">
+                    {loadingBalances ? (
+                      <div className="flex items-center gap-1">
+                        <div className="h-3 w-3 animate-spin rounded-full border border-muted-foreground border-t-transparent"></div>
+                        <span className="text-xs text-muted-foreground">
+                          Loading balance...
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-xs font-medium text-primary">
+                        Balance:{" "}
+                        {accountBalances[displayAccount.address] ||
+                          `0.00 ${networkConfig.currency.symbol}`}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <DropdownMenuSeparator />
               </>
@@ -335,7 +412,7 @@ export function WalletConnect({
                 <DropdownMenuItem
                   onClick={() =>
                     window.open(
-                      `https://polkadot.subscan.io/account/${displayAccount.address}`,
+                      `${networkConfig.subscanUrl}/account/${displayAccount.address}`,
                       "_blank"
                     )
                   }
@@ -351,6 +428,20 @@ export function WalletConnect({
             <DropdownMenuItem onClick={() => setOpen(true)}>
               <RefreshCw className="mr-2 h-4 w-4" />
               Change Account
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              onClick={() =>
+                connectedWallet && fetchAccountBalances(connectedWallet)
+              }
+              disabled={loadingBalances}
+            >
+              <RefreshCw
+                className={`mr-2 h-4 w-4 ${
+                  loadingBalances ? "animate-spin" : ""
+                }`}
+              />
+              Refresh Balances
             </DropdownMenuItem>
 
             <DropdownMenuItem onClick={handleDisconnect}>
@@ -388,11 +479,27 @@ export function WalletConnect({
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <p className="text-sm font-medium">
-                              {account.name || `Account ${index + 1}`}
+                              Username: {account.name || `Account ${index + 1}`}
                             </p>
                             <p className="text-xs text-muted-foreground font-mono">
-                              {formatAddress(account.address)}
+                              Address: {formatAddress(account.address)}
                             </p>
+                            <div className="mt-1">
+                              {loadingBalances ? (
+                                <div className="flex items-center gap-1">
+                                  <div className="h-2 w-2 animate-spin rounded-full border border-muted-foreground border-t-transparent"></div>
+                                  <span className="text-xs text-muted-foreground">
+                                    Loading...
+                                  </span>
+                                </div>
+                              ) : (
+                                <p className="text-xs font-medium text-primary">
+                                  Balance:{" "}
+                                  {accountBalances[account.address] ||
+                                    `0.00 ${networkConfig.currency.symbol}`}
+                                </p>
+                              )}
+                            </div>
                           </div>
                           <div className="flex items-center space-x-1">
                             {isSelected && (
@@ -414,7 +521,7 @@ export function WalletConnect({
                               onClick={(e) => {
                                 e.stopPropagation();
                                 window.open(
-                                  `https://polkadot.subscan.io/account/${account.address}`,
+                                  `${networkConfig.subscanUrl}/account/${account.address}`,
                                   "_blank"
                                 );
                               }}
