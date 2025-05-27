@@ -94,6 +94,7 @@ export function ChatInterface({
   const [currentChatCount, setCurrentChatCount] = useState(
     proposal.chatCount || 0
   );
+  const [isLoadingWallet, setIsLoadingWallet] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const checkProposalStatus = useCallback(async () => {
@@ -114,6 +115,40 @@ export function ChatInterface({
       setIsCheckingStatus(false);
     }
   }, [proposal.chainId, proposal.network]);
+
+  useEffect(() => {
+    const loadGlobalWallet = async () => {
+      try {
+        setIsLoadingWallet(true);
+        const { walletService } = await import("@/services/wallet");
+        const wallet = await walletService.verifyAndRefreshConnection();
+
+        if (wallet) {
+          const persistedAccountAddress = localStorage.getItem(
+            "selectedAccountAddress"
+          );
+          if (persistedAccountAddress) {
+            const account = wallet.accounts.find(
+              (acc) => acc.address === persistedAccountAddress
+            );
+            if (account) {
+              setSelectedAccount(account);
+            } else if (wallet.accounts.length > 0) {
+              setSelectedAccount(wallet.accounts[0]);
+            }
+          } else if (wallet.accounts.length > 0) {
+            setSelectedAccount(wallet.accounts[0]);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading global wallet state:", error);
+      } finally {
+        setIsLoadingWallet(false);
+      }
+    };
+
+    loadGlobalWallet();
+  }, []);
 
   useEffect(() => {
     checkProposalStatus();
@@ -295,101 +330,103 @@ export function ChatInterface({
         }`}
       >
         <ScrollArea className="flex-1 p-2 sm:p-4 overflow-hidden max-h-[400px] sm:max-h-[500px] lg:max-h-[600px] xl:max-h-[700px]">
-          <div className="space-y-4 max-w-full">
-            {/* Proposer Validation Error */}
-            {proposerValidationError && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Access Restricted</AlertTitle>
-                <AlertDescription className="space-y-3">
-                  <p>{proposerValidationError.error}</p>
-                  <div className="space-y-2 text-sm">
-                    <div className="p-3 bg-muted rounded-md">
-                      <p className="font-medium text-foreground">
-                        Required Proposer Address:
-                      </p>
-                      <code className="text-xs bg-background px-2 py-1 rounded">
-                        {proposerValidationError.proposer.slice(0, 6)}...
-                        {proposerValidationError.proposer.slice(-6)}
-                      </code>
-                    </div>
-                    <div className="p-3 bg-muted rounded-md">
-                      <p className="font-medium text-foreground">
-                        Currently Connected:
-                      </p>
-                      <code className="text-xs bg-background px-2 py-1 rounded">
-                        {proposerValidationError.connectedAddress.slice(0, 6)}
-                        ...
-                        {proposerValidationError.connectedAddress.slice(-6)}
-                      </code>
-                    </div>
-                  </div>
-                  <div className="pt-2">
-                    <WalletConnect
-                      onAccountSelected={(account) => {
-                        setSelectedAccount(account);
-                        if (
-                          account &&
-                          isSameAccount(
-                            account.address,
-                            proposerValidationError.proposer
-                          )
-                        ) {
-                          setProposerValidationError(null);
-                        }
-                      }}
-                      selectedAccount={selectedAccount}
-                    />
-                  </div>
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Wallet Connection Error */}
-            {walletError && !proposerValidationError && (
-              <Alert variant="destructive" className="mb-4">
-                <Wallet className="h-4 w-4" />
-                <AlertTitle>Wallet Required</AlertTitle>
-                <AlertDescription className="space-y-3">
-                  <p>{walletError}</p>
-                  <WalletConnect
-                    onAccountSelected={(account) => {
-                      setSelectedAccount(account);
-                      setWalletError(null);
-                    }}
-                    selectedAccount={selectedAccount}
-                  />
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {messages?.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center space-y-4">
+          {messages?.length === 0 ? (
+            <div className="flex h-[350px] sm:h-[450px] lg:h-[550px] xl:h-[625px] flex-col items-center justify-center space-y-4">
+              <div className="flex flex-col items-center">
                 <Bot className="mb-2 h-12 w-12 text-muted-foreground" />
                 <p className="text-center text-sm text-muted-foreground">
                   {isCheckingStatus
                     ? "Checking proposal status..."
                     : "Start the conversation by introducing your proposal to GovBot."}
                 </p>
-                {!selectedAccount && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setWalletNudgeOpen(true)}
-                    className="bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 dark:from-purple-950 dark:to-pink-950 border-purple-200 dark:border-purple-800"
-                  >
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Connect Wallet to Chat
-                    <Sparkles className="ml-2 h-4 w-4" />
-                  </Button>
-                )}
               </div>
-            ) : (
-              messages?.map((message, index) => (
+              {!selectedAccount && (
+                <Button
+                  variant="outline"
+                  onClick={() => setWalletNudgeOpen(true)}
+                  className="bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 dark:from-purple-950 dark:to-pink-950 border-purple-200 dark:border-purple-800"
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Connect Wallet to Chat
+                  <Sparkles className="ml-2 h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4 max-w-full">
+              {/* Proposer Validation Error */}
+              {proposerValidationError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Access Restricted</AlertTitle>
+                  <AlertDescription className="space-y-3">
+                    <p>{proposerValidationError.error}</p>
+                    <div className="space-y-2 text-sm">
+                      <div className="p-3 bg-muted rounded-md">
+                        <p className="font-medium text-foreground">
+                          Required Proposer Address:
+                        </p>
+                        <code className="text-xs bg-background px-2 py-1 rounded">
+                          {proposerValidationError.proposer.slice(0, 6)}...
+                          {proposerValidationError.proposer.slice(-6)}
+                        </code>
+                      </div>
+                      <div className="p-3 bg-muted rounded-md">
+                        <p className="font-medium text-foreground">
+                          Currently Connected:
+                        </p>
+                        <code className="text-xs bg-background px-2 py-1 rounded">
+                          {proposerValidationError.connectedAddress.slice(0, 6)}
+                          ...
+                          {proposerValidationError.connectedAddress.slice(-6)}
+                        </code>
+                      </div>
+                    </div>
+                    <div className="pt-2">
+                      <WalletConnect
+                        onAccountSelected={(account) => {
+                          setSelectedAccount(account);
+                          if (
+                            account &&
+                            isSameAccount(
+                              account.address,
+                              proposerValidationError.proposer
+                            )
+                          ) {
+                            setProposerValidationError(null);
+                          }
+                        }}
+                        selectedAccount={selectedAccount}
+                      />
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Wallet Connection Error */}
+              {walletError && !proposerValidationError && (
+                <Alert variant="destructive" className="mb-4">
+                  <Wallet className="h-4 w-4" />
+                  <AlertTitle>Wallet Required</AlertTitle>
+                  <AlertDescription className="space-y-3">
+                    <p>{walletError}</p>
+                    <WalletConnect
+                      onAccountSelected={(account) => {
+                        setSelectedAccount(account);
+                        setWalletError(null);
+                      }}
+                      selectedAccount={selectedAccount}
+                    />
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {messages?.map((message, index) => (
                 <ChatMessageComponent key={index} message={message} />
-              ))
-            )}
-            <div ref={bottomRef} />
-          </div>
+              ))}
+              <div ref={bottomRef} />
+            </div>
+          )}
         </ScrollArea>
 
         {/* Chat Input */}
@@ -448,31 +485,50 @@ export function ChatInterface({
           <div className="w-full max-w-md mx-4 p-4 sm:p-6 space-y-4">
             <div className="text-center space-y-4">
               <div className="mx-auto w-16 h-16 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-full flex items-center justify-center">
-                <Wallet className="h-8 w-8 text-primary" />
+                {isLoadingWallet ? (
+                  <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                ) : (
+                  <Wallet className="h-8 w-8 text-primary" />
+                )}
               </div>
 
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold text-foreground">
-                  🚀 Ready to Join the Conversation?
+                  {isLoadingWallet
+                    ? "🔍 Checking Wallet Connection..."
+                    : "🚀 Ready to Join the Conversation?"}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Connect your wallet to start chatting with GovBot about this
-                  proposal!
+                  {isLoadingWallet
+                    ? "Looking for existing wallet connections..."
+                    : "Connect your wallet to start chatting with GovBot about this proposal!"}
                 </p>
               </div>
 
               <Button
                 onClick={() => setWalletNudgeOpen(true)}
+                disabled={isLoadingWallet}
                 className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-medium"
               >
-                <Sparkles className="mr-2 h-4 w-4" />
-                Connect Wallet to Chat
-                <Sparkles className="ml-2 h-4 w-4" />
+                {isLoadingWallet ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Checking...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Connect Wallet to Chat
+                    <Sparkles className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
 
-              <p className="text-xs text-muted-foreground">
-                Experience our fun wallet connection flow! ✨
-              </p>
+              {!isLoadingWallet && (
+                <p className="text-xs text-muted-foreground">
+                  Experience our fun wallet connection flow! ✨
+                </p>
+              )}
             </div>
           </div>
         </div>

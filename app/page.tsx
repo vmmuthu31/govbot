@@ -53,6 +53,7 @@ export default function Home() {
     type?: string;
     genesisHash?: string;
   } | null>(null);
+  const [isLoadingWallet, setIsLoadingWallet] = useState(true);
 
   const fetchProposals = useCallback(
     async (shouldImportFresh = false) => {
@@ -93,6 +94,40 @@ export default function Home() {
     },
     [networkConfig.id]
   );
+
+  useEffect(() => {
+    const loadGlobalWallet = async () => {
+      try {
+        setIsLoadingWallet(true);
+        const { walletService } = await import("@/services/wallet");
+        const wallet = await walletService.verifyAndRefreshConnection();
+
+        if (wallet) {
+          const persistedAccountAddress = localStorage.getItem(
+            "selectedAccountAddress"
+          );
+          if (persistedAccountAddress) {
+            const account = wallet.accounts.find(
+              (acc) => acc.address === persistedAccountAddress
+            );
+            if (account) {
+              setSelectedAccount(account);
+            } else if (wallet.accounts.length > 0) {
+              setSelectedAccount(wallet.accounts[0]);
+            }
+          } else if (wallet.accounts.length > 0) {
+            setSelectedAccount(wallet.accounts[0]);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading global wallet state:", error);
+      } finally {
+        setIsLoadingWallet(false);
+      }
+    };
+
+    loadGlobalWallet();
+  }, []);
 
   useEffect(() => {
     fetchProposals(true);
@@ -187,22 +222,33 @@ export default function Home() {
               &apos;s OpenGov referenda with transparent, reasoned
               participation.
             </p>
-            <div className="mx-auto max-w-[600px]">
-              <div
-                className="text-sm text-muted-foreground/80 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 rounded-lg p-4 border border-purple-200 dark:border-purple-800 cursor-pointer hover:shadow-md transition-all duration-200"
-                onClick={() => setWalletNudgeOpen(true)}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <span className="text-lg">🚀</span>
-                  <strong>Ready to join the governance party?</strong>
-                  <span className="text-lg">🎉</span>
+            {!selectedAccount && (
+              <div className="mx-auto max-w-[600px]">
+                <div
+                  className="text-sm text-muted-foreground/80 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 rounded-lg p-4 border border-purple-200 dark:border-purple-800 cursor-pointer hover:shadow-md transition-all duration-200"
+                  onClick={() => !isLoadingWallet && setWalletNudgeOpen(true)}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-lg">
+                      {isLoadingWallet ? "🔍" : "🚀"}
+                    </span>
+                    <strong>
+                      {isLoadingWallet
+                        ? "Checking wallet connection..."
+                        : "Ready to join the governance party?"}
+                    </strong>
+                    <span className="text-lg">
+                      {isLoadingWallet ? "⏳" : "🎉"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-center">
+                    {isLoadingWallet
+                      ? "Looking for existing wallet connections..."
+                      : "Click here to connect your wallet and start chatting with GovBot about proposals!"}
+                  </p>
                 </div>
-                <p className="mt-2 text-center">
-                  Click here to connect your wallet and start chatting with
-                  GovBot about proposals!
-                </p>
               </div>
-            </div>
+            )}
 
             <div className="flex flex-col items-center gap-6">
               <div className="flex max-w-md w-full mx-auto gap-2">
