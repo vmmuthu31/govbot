@@ -39,9 +39,11 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
         <div className="flex flex-wrap items-center justify-between gap-1">
           <div className="flex items-center gap-2">
             <Badge variant="outline">
-              Proposal ID: {proposal.chainId || "Unknown Track"}
+              # {proposal.chainId || "Unknown Track"}
             </Badge>{" "}
-            <Badge variant="outline">{proposal.track || "Unknown Track"}</Badge>
+            <Badge variant="secondary">
+              {proposal.track || "Unknown Track"}
+            </Badge>
             {proposal.vote && (
               <Badge className={getVoteBadgeColor(proposal.vote.decision)}>
                 {proposal.vote.decision}

@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLinkIcon, Bot, User, ChevronDown, Wallet } from "lucide-react";
+import { ExternalLinkIcon, User, ChevronDown } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { ProposalWithMessages } from "@/lib/types";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { VoteSummary } from "./VoteSummary";
 import { formatDistanceToNow } from "@/utils/formatDistanceToNow";
 import { MarkdownViewer } from "../Markdown/MarkdownViewer";
@@ -23,7 +22,6 @@ interface ProposalDetailsProps {
 }
 
 export function ProposalDetails({ proposal }: ProposalDetailsProps) {
-  const [activeTab, setActiveTab] = useState("details");
   const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(false);
   const [walletNudgeOpen, setWalletNudgeOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<{
@@ -39,12 +37,10 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
       <div className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Badge variant="outline">
-              Track No: {proposal.track || "Unknown Track"}
-            </Badge>
-            <Badge variant="secondary">Proposal ID: {proposal.chainId}</Badge>
+            <Badge variant="outline">{proposal.track || "Unknown Track"}</Badge>
+            <Badge variant="secondary"># {proposal.chainId}</Badge>
           </div>
-          <div className="flex items-center text-sm text-muted-foreground">
+          <div className="flex items-center text-xs text-muted-foreground">
             <FiClock className="mr-1 h-4 w-4" />
             <span>{formatDistanceToNow(proposal.createdAt)}</span>
           </div>
@@ -71,17 +67,8 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
 
       {proposal.vote && <VoteSummary vote={proposal.vote} />}
 
-      <Tabs
-        defaultValue="details"
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="w-full"
-      >
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="chat">Chat History</TabsTrigger>
-        </TabsList>
-        <TabsContent value="details" className="mt-4">
+      <div className="w-full">
+        <div>
           {/* AI Summary Collapsible */}
           <Collapsible
             open={isCollapsibleOpen}
@@ -137,60 +124,8 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
               </div>
             </div>
           </div>
-        </TabsContent>
-        <TabsContent value="chat" className="mt-4">
-          <div className="space-y-4 rounded-md border bg-muted/30 p-4 max-h-[400px] overflow-y-auto">
-            {proposal?.messages?.length > 0 ? (
-              proposal?.messages?.map((message, index) => (
-                <div key={index} className="border-b pb-3 last:border-0">
-                  <div className="mb-1 flex items-center gap-2">
-                    {message.role === "user" ? (
-                      <>
-                        <User className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-medium">Proposer</span>
-                      </>
-                    ) : (
-                      <>
-                        <Bot className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-medium">GovBot</span>
-                      </>
-                    )}
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(message.createdAt)}
-                    </span>
-                  </div>
-                  <div className="prose prose-sm dark:prose-invert">
-                    <MarkdownViewer markdown={message.content} />
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="flex flex-col items-center justify-center p-4 text-center space-y-4">
-                <Bot className="mb-2 h-8 w-8 text-muted-foreground" />
-                <div className="space-y-2">
-                  <p className="text-muted-foreground">No chat history yet.</p>
-                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                    <Wallet className="h-4 w-4" />
-                    <span>
-                      Connect your wallet to start chatting with GovBot
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setWalletNudgeOpen(true)}
-                  className="px-4 py-2 bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 dark:from-purple-950 dark:to-pink-950 border border-purple-200 dark:border-purple-800 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md"
-                >
-                  🚀 Connect Wallet & Start Chatting
-                </button>
-                <p className="text-xs text-muted-foreground max-w-md">
-                  Only the proposer can chat with this proposal. Connect your
-                  wallet to verify your identity and start the conversation.
-                </p>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
 
       {/* Wallet Nudge Dialog */}
       <WalletNudgeDialog
