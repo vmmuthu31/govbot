@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { RefCountedProposal } from "@/lib/types";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ExternalLink, Users, Info } from "lucide-react";
 import { Button } from "../ui/button";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import Link from "next/link";
 import { useNetwork } from "@/lib/network-context";
+import { formatBnBalance } from "@/utils/formatBnBalance";
 
 interface OnChainInfoProps {
   proposal?: RefCountedProposal | null;
@@ -15,53 +15,59 @@ interface OnChainInfoProps {
 
 export function OnChainInfo({ proposal }: OnChainInfoProps) {
   const { networkConfig } = useNetwork();
-  const [loading, setLoading] = useState(!!!proposal);
-  const [error, setError] = useState<string | null>(null);
   const [votingPower, setVotingPower] = useState<string | null>(null);
-  const [botAddress, setBotAddress] = useState<string | null>(null);
+  const botAddress =
+    process.env.POLKADOT_BOT_ADDRESS ||
+    "1FN1XvRXhVBfWN6mxHyUsWsGLjrHqFM6RvJZVRp1UvXH3HU";
+  const getUserBalances = useCallback(async () => {
+    try {
+      const { polkadotClientService } = await import(
+        "@/services/polkadot-client"
+      );
+      const result = await polkadotClientService?.getUserBalances(
+        botAddress || "",
+        networkConfig.id
+      );
+      return result;
+    } catch (error) {
+      console.error("Error in getUserBalances:", error);
+      return null;
+    }
+  }, [botAddress, networkConfig.id]);
 
   useEffect(() => {
-    const fetchOnChainData = async () => {
-      try {
-        const vpResponse = await fetch(
-          `/api/polkadot/voting-power?network=${networkConfig.id}`
+    const fetchUserBalances = async () => {
+      const userBalances = await getUserBalances();
+      const balance = formatBnBalance(
+        userBalances?.totalBalance?.toString() || "0",
+        { numberAfterComma: 2, withUnit: true },
+        networkConfig.id
+      );
+
+      if (
+        userBalances?.totalBalance?.toString() === "0" &&
+        userBalances?.freeBalance?.toString() !== "0"
+      ) {
+        const freeBalanceFormatted = formatBnBalance(
+          userBalances?.freeBalance?.toString() || "0",
+          { numberAfterComma: 2, withUnit: true },
+          networkConfig.id
         );
-        if (vpResponse.ok) {
-          const vpData = await vpResponse.json();
-          setVotingPower(
-            vpData.formatted || `0 ${networkConfig.currency.symbol}`
-          );
-          setBotAddress(vpData.address || null);
-        }
-      } catch (err) {
-        console.error("Error fetching on-chain data:", err);
-        setError("Failed to load on-chain data");
-      } finally {
-        setLoading(false);
+        setVotingPower(freeBalanceFormatted);
+      } else {
+        setVotingPower(balance);
       }
     };
+    fetchUserBalances();
+  }, [getUserBalances]);
 
-    fetchOnChainData();
-  }, [proposal, networkConfig.id, networkConfig.currency.symbol]);
-
-  if (loading) {
-    return (
-      <div className="space-y-4 rounded-md border p-4">
-        <Skeleton className="h-6 w-1/2" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-4 w-3/4" />
-      </div>
-    );
-  }
-
-  if (error || !proposal) {
+  if (!proposal) {
     return (
       <Alert variant="destructive">
         <Info className="h-4 w-4" />
         <AlertTitle>Error loading on-chain data</AlertTitle>
         <AlertDescription>
-          {error || "Could not find on-chain proposal data"}
+          Could not find on-chain proposal data
         </AlertDescription>
       </Alert>
     );

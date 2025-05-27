@@ -9,6 +9,8 @@ import { ApiPromise, WsProvider } from "@polkadot/api";
 import { cryptoWaitReady } from "@polkadot/util-crypto";
 import type { WalletAccount } from "@/services/wallet";
 import { web3FromAddress } from "@polkadot/extension-dapp";
+import { BN, BN_ZERO } from "@polkadot/util";
+import { getEncodedAddress } from "@/utils/getEncodedAddress";
 
 /**
  * Client-side Polkadot service for browser wallet integration
@@ -122,8 +124,7 @@ class PolkadotClientService {
     try {
       const { NETWORKS } = await import("@/lib/constants");
       const networkConfig = NETWORKS[networkId as keyof typeof NETWORKS];
-      const rpcUrl =
-        networkConfig?.rpcEndpoints[0]?.url || "wss://rpc.polkadot.io";
+      const rpcUrl = networkConfig?.rpcEndpoints[0]?.url;
 
       const wsProvider = new WsProvider(rpcUrl);
       const api = await ApiPromise.create({ provider: wsProvider });
@@ -141,6 +142,93 @@ class PolkadotClientService {
       throw new Error(
         "Failed to get voting power: " + (error as Error).message
       );
+    }
+  }
+
+  async getUserBalances(address: string, networkId: string = "polkadot") {
+    try {
+      const { NETWORKS } = await import("@/lib/constants");
+      const networkConfig = NETWORKS[networkId as keyof typeof NETWORKS];
+      const rpcUrl = networkConfig?.rpcEndpoints[0]?.url;
+
+      const wsProvider = new WsProvider(rpcUrl);
+      const api = await ApiPromise.create({ provider: wsProvider });
+
+      let freeBalance = BN_ZERO;
+      let lockedBalance = BN_ZERO;
+      let totalBalance = BN_ZERO;
+      let transferableBalance = BN_ZERO;
+
+      const responseObj = {
+        freeBalance,
+        lockedBalance,
+        totalBalance,
+        transferableBalance,
+      };
+
+      if (!address || !api?.derive?.balances?.all) {
+        return responseObj;
+      }
+
+      const existentialDeposit = api.consts?.balances?.existentialDeposit
+        ? new BN(api.consts.balances.existentialDeposit.toString())
+        : BN_ZERO;
+
+      const encodedAddress =
+        getEncodedAddress(address, networkConfig.id) || address;
+      await api.derive.balances
+        .all(encodedAddress)
+        .then((result) => {
+          lockedBalance = new BN(result.lockedBalance || lockedBalance);
+        })
+        .catch(() => {
+          // TODO: show notification
+        });
+
+      await api.query.system
+        .account(encodedAddress)
+        .then((result: any) => {
+          const free = new BN(result?.data?.free) || BN_ZERO;
+          const reserved = new BN(result?.data?.reserved) || BN_ZERO;
+          const frozen =
+            new BN(
+              result?.data?.frozen ||
+                result?.data?.feeFrozen ||
+                result?.data?.miscFrozen
+            ) || BN_ZERO;
+
+          totalBalance = free.add(reserved);
+          freeBalance = free;
+
+          if (free.gt(frozen)) {
+            transferableBalance = free.sub(frozen);
+
+            if (transferableBalance.lt(existentialDeposit)) {
+              transferableBalance = BN_ZERO;
+            }
+          } else {
+            transferableBalance = BN_ZERO;
+          }
+        })
+        .catch(() => {
+          // TODO: show notification
+        });
+      await api.disconnect();
+
+      return {
+        freeBalance,
+        lockedBalance,
+        totalBalance,
+        transferableBalance,
+      };
+    } catch (error) {
+      console.error("Error in getUserBalances:", error);
+      return {
+        freeBalance: BN_ZERO,
+        lockedBalance: BN_ZERO,
+        totalBalance: BN_ZERO,
+        transferableBalance: BN_ZERO,
+      };
     }
   }
 }

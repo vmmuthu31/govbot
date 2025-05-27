@@ -1,5 +1,15 @@
 export type NetworkId = "polkadot" | "paseo";
 
+interface ITreasuryAsset {
+  name: string;
+  tokenDecimal: number;
+  symbol: string;
+}
+
+interface INetworkTreasuryAssets extends ITreasuryAsset {
+  index: string;
+}
+
 export interface NetworkConfig {
   id: NetworkId;
   name: string;
@@ -15,7 +25,40 @@ export interface NetworkConfig {
     symbol: string;
     decimals: number;
   };
+  tokenDecimals: number;
+  supportedAssets: Record<string, INetworkTreasuryAssets>;
+  ss58Format: number;
 }
+
+export enum EAssets {
+  DED = "DED",
+  USDT = "USDT",
+  USDC = "USDC",
+  MYTH = "MYTH",
+}
+
+export const treasuryAssetsData: Record<string, ITreasuryAsset> = {
+  [EAssets.DED]: {
+    name: "dot-is-ded",
+    tokenDecimal: 10,
+    symbol: "DED",
+  },
+  [EAssets.USDT]: {
+    name: "usdt",
+    tokenDecimal: 6,
+    symbol: "USDT",
+  },
+  [EAssets.USDC]: {
+    name: "usdc",
+    tokenDecimal: 6,
+    symbol: "USDC",
+  },
+  [EAssets.MYTH]: {
+    name: "mythos",
+    tokenDecimal: 18,
+    symbol: "MYTH",
+  },
+} as const;
 
 export const NETWORKS: Record<NetworkId, NetworkConfig> = {
   polkadot: {
@@ -26,23 +69,23 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
     rpcEndpoints: [
       {
         name: "via Parity",
-        url: "wss://polkadot-people-rpc.polkadot.io",
+        url: "wss://rpc.polkadot.io",
       },
       {
         name: "via LuckyFriday",
-        url: "wss://rpc-people-polkadot.luckyfriday.io",
+        url: "wss://rpc-polkadot.luckyfriday.io",
       },
       {
         name: "via RadiumBlock",
-        url: "wss://people-polkadot.public.curie.radiumblock.co/ws",
+        url: "wss://polkadot.public.curie.radiumblock.co/ws",
       },
       {
         name: "via IBP-GeoDNS1",
-        url: "wss://sys.ibp.network/people-polkadot",
+        url: "wss://sys.ibp.network/polkadot",
       },
       {
         name: "via IBP-GeoDNS2",
-        url: "wss://people-polkadot.dotters.network",
+        url: "wss://polkadot.dotters.network",
       },
     ],
     polkassemblyUrl: "https://polkadot.polkassembly.io",
@@ -51,6 +94,24 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
       symbol: "DOT",
       decimals: 10,
     },
+    tokenDecimals: 10,
+    supportedAssets: {
+      "1984": {
+        ...treasuryAssetsData[EAssets.USDT],
+        index: "1984",
+        tokenDecimal: 6,
+      },
+      "1337": {
+        ...treasuryAssetsData[EAssets.USDC],
+        index: "1337",
+        tokenDecimal: 6,
+      },
+      "30": {
+        ...treasuryAssetsData[EAssets.DED],
+        index: "30",
+      },
+    },
+    ss58Format: 0,
   },
   paseo: {
     id: "paseo",
@@ -60,15 +121,15 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
     rpcEndpoints: [
       {
         name: "via IBP 1",
-        url: "wss://sys.ibp.network/people-paseo",
+        url: "wss://sys.ibp.network/paseo",
       },
       {
         name: "via IBP 2",
-        url: "wss://people-paseo.dotters.network",
+        url: "wss://paseo.dotters.network",
       },
       {
         name: "via Armfoc",
-        url: "wss://people-paseo.rpc.amforc.com",
+        url: "wss://paseo.rpc.amforc.com",
       },
     ],
     polkassemblyUrl: "https://paseo.polkassembly.io",
@@ -77,6 +138,9 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
       symbol: "PAS",
       decimals: 10,
     },
+    tokenDecimals: 10,
+    supportedAssets: {},
+    ss58Format: 0,
   },
 };
 
