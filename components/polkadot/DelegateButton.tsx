@@ -65,7 +65,7 @@ export function DelegateButton() {
 
       const delegateAddress =
         process.env.NEXT_PUBLIC_POLKADOT_BOT_ADDRESS ||
-        "1FN1XvRXhVBfWN6mxHyUsWsGLjrHqFM6RvJZVRp1UvXH3HU";
+        "13gwtpPgVAxqBJdCbbKgvXa2sCfAXHEPjiQ8jRi6ekBGY8Fx";
 
       const txHash = await polkadotClientService.delegateVotingPowerClient(
         selectedAccount,

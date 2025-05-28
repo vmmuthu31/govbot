@@ -18,7 +18,7 @@ export function OnChainInfo({ proposal }: OnChainInfoProps) {
   const [votingPower, setVotingPower] = useState<string | null>(null);
   const botAddress =
     process.env.POLKADOT_BOT_ADDRESS ||
-    "1FN1XvRXhVBfWN6mxHyUsWsGLjrHqFM6RvJZVRp1UvXH3HU";
+    "13gwtpPgVAxqBJdCbbKgvXa2sCfAXHEPjiQ8jRi6ekBGY8Fx";
   const getUserBalances = useCallback(async () => {
     try {
       const { polkadotClientService } = await import(
