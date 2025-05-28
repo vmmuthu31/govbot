@@ -76,8 +76,7 @@ class PolkadotService {
 
     for (let attempt = 0; attempt < endpoints.length; attempt++) {
       try {
-        const endpoint =
-          process.env.POLKADOT_RPC_URL || endpoints[this.currentRpcIndex].url;
+        const endpoint = endpoints[this.currentRpcIndex].url;
         const provider = new WsProvider(endpoint);
 
         this.api = await ApiPromise.create({ provider });
