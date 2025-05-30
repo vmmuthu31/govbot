@@ -150,6 +150,24 @@ export default function ProposalDetailPage({
           </Link>
           <div className="grid gap-6 lg:gap-8 lg:grid-cols-3 grid-cols-1">
             <div className="lg:col-span-2 col-span-1 order-1">
+              <div className="space-y-6">
+                <div className="text-center lg:text-left">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    📋 Proposal Details
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Overview and on-chain information
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-card shadow-sm">
+                  <div className="p-4 space-y-6">
+                    <ProposalDetails proposal={proposal} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="lg:col-span-1 col-span-1 order-2 space-y-6">
+              {/*  */}
               <div className="space-y-4">
                 <div className="text-center lg:text-left">
                   <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
@@ -166,26 +184,9 @@ export default function ProposalDetailPage({
                   />
                 </div>
               </div>
-            </div>
-            <div className="lg:col-span-1 col-span-1 order-2 space-y-6">
-              <div className="space-y-6">
-                <div className="text-center lg:text-left">
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
-                    📋 Proposal Details
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Overview and on-chain information
-                  </p>
-                </div>
-                <div className="rounded-lg border bg-card shadow-sm">
-                  <div className="p-4 space-y-6">
-                    <ProposalDetails proposal={proposal} />
-                    <OnChainInfo
-                      proposal={proposal as unknown as RefCountedProposal}
-                    />
-                  </div>
-                </div>
-              </div>
+              <OnChainInfo
+                proposal={proposal as unknown as RefCountedProposal}
+              />
             </div>
           </div>
         </div>

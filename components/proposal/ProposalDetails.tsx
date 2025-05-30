@@ -115,10 +115,11 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
             <h4 className="text-sm font-medium text-foreground">
               📄 Proposal Description
             </h4>
-            <div className="rounded-md border bg-muted/30 p-4 max-h-[400px] overflow-y-auto">
+            <div className="rounded-md border bg-muted/30 p-4  overflow-y-auto">
               <div className="overflow-x-auto">
                 <MarkdownViewer
-                  truncate={false}
+                  truncate={true}
+                  className="line-clamp-3"
                   markdown={proposal.description}
                 />
               </div>
