@@ -226,7 +226,6 @@ export function WalletConnect({
 
       walletService.disconnect();
 
-      // Connect to wallet with signature request (handled in wallet.ts)
       const wallet = await walletService.connectWallet(selectedWallet);
       setConnectedWallet(wallet);
 

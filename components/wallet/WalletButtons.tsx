@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -5,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Wallet, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { EWallet } from "@/lib/types";
-import { walletService } from "@/services/wallet";
 import { WEB3_AUTH_SIGN_MESSAGE } from "@/utils/constants";
 import { InjectedAccount } from "@polkadot/extension-inject/types";
 
@@ -29,6 +29,17 @@ const useUserPreferences = () => {
 };
 
 const useWalletService = () => {
+  const [walletService, setWalletService] = useState<any | null>(null);
+
+  useEffect(() => {
+    const fetchWalletService = async () => {
+      const { walletService } = await import("@/services/wallet");
+      setWalletService(walletService);
+    };
+
+    fetchWalletService();
+  }, []);
+
   return walletService;
 };
 
@@ -54,19 +65,23 @@ export function WalletButtons({
   const { userPreferences, setUserPreferences } = useUserPreferences();
 
   useEffect(() => {
-    const injectedWallets = walletService?.getInjectedWallets() || {};
-    setAvailableWallets(injectedWallets);
+    const fetchWallets = async () => {
+      const injectedWallets = (await walletService)?.getInjectedWallets() || {};
+      setAvailableWallets(injectedWallets);
 
-    if (userPreferences.wallet) {
-      setSelectedWallet(userPreferences.wallet);
-    } else if (Object.keys(injectedWallets).length > 0) {
-      const firstWallet = Object.keys(injectedWallets)[0] as EWallet;
-      setSelectedWallet(firstWallet);
-      setUserPreferences({
-        ...userPreferences,
-        wallet: firstWallet,
-      });
-    }
+      if (userPreferences.wallet) {
+        setSelectedWallet(userPreferences.wallet);
+      } else if (Object.keys(injectedWallets).length > 0) {
+        const firstWallet = Object.keys(injectedWallets)[0] as EWallet;
+        setSelectedWallet(firstWallet);
+        setUserPreferences({
+          ...userPreferences,
+          wallet: firstWallet,
+        });
+      }
+    };
+
+    fetchWallets();
   }, [walletService, userPreferences, setUserPreferences]);
 
   const getAccounts = useCallback(async () => {
