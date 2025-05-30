@@ -7,6 +7,7 @@ import { ProposalWithMessages } from "@/lib/types";
 import { VoteSummary } from "./VoteSummary";
 import { formatDistanceToNow } from "@/utils/formatDistanceToNow";
 import { MarkdownViewer } from "../Markdown/MarkdownViewer";
+import { getTrackName } from "@/utils/getTrackName";
 import {
   Collapsible,
   CollapsibleContent,
@@ -37,8 +38,13 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
       <div className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Badge variant="secondary"># {proposal.chainId}</Badge>
-            <Badge variant="outline">{proposal.track || "Unknown Track"}</Badge>
+            <Badge variant="secondary">
+              #{" "}
+              {proposal.network === "polkadot" ? proposal.id : proposal.chainId}
+            </Badge>
+            <Badge variant="outline">
+              {getTrackName(proposal.track || "Unknown Track")}
+            </Badge>
           </div>
           <div className="flex items-center text-xs text-muted-foreground">
             <FiClock className="mr-1 h-4 w-4" />
@@ -69,46 +75,47 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
 
       <div className="w-full">
         <div>
-          {/* AI Summary Collapsible */}
-          <Collapsible
-            open={isCollapsibleOpen}
-            onOpenChange={setIsCollapsibleOpen}
-            className={
-              styles.collapsibleWrapper ||
-              "relative w-full rounded-xl p-px bg-gradient-to-r from-pink-500 via-blue-400 to-purple-600 overflow-hidden mb-5"
-            }
-          >
-            <div
-              className={`${
-                styles.collapsibleInner ||
-                "rounded-[11px] w-full transition-all duration-300"
-              } ${
-                styles.postContentGradient ||
-                "bg-gradient-to-b from-purple-50 to-gray-50"
-              }`}
+          {proposal.contentSummary && (
+            <Collapsible
+              open={isCollapsibleOpen}
+              onOpenChange={setIsCollapsibleOpen}
+              className={
+                styles.collapsibleWrapper ||
+                "relative w-full rounded-xl p-px bg-gradient-to-r from-pink-500 via-blue-400 to-purple-600 overflow-hidden mb-5"
+              }
             >
-              <CollapsibleTrigger
-                className={
-                  styles.collapsibleTrigger ||
-                  "flex w-full items-center justify-between p-2 font-medium text-foreground bg-transparent border-none cursor-pointer hover:opacity-80"
-                }
+              <div
+                className={`${
+                  styles.collapsibleInner ||
+                  "rounded-[11px] w-full transition-all duration-300"
+                } ${
+                  styles.postContentGradient ||
+                  "bg-gradient-to-b from-purple-50 to-gray-50"
+                }`}
               >
-                <span>✨ AI Summary</span>
-                <ChevronDown
-                  className={`${
-                    styles.chevronIcon ||
-                    "w-4 h-4 text-foreground font-semibold transition-transform duration-300"
-                  } ${isCollapsibleOpen ? "rotate-180" : ""}`}
-                />
-              </CollapsibleTrigger>
-              <CollapsibleContent
-                className={styles.collapsibleContent || "px-6 pb-6 text-sm"}
-              >
-                <Separator className="mb-3 mt-0 p-0" />
-                <MarkdownViewer markdown={proposal.contentSummary || ""} />
-              </CollapsibleContent>
-            </div>
-          </Collapsible>
+                <CollapsibleTrigger
+                  className={
+                    styles.collapsibleTrigger ||
+                    "flex w-full items-center justify-between p-2 font-medium text-foreground bg-transparent border-none cursor-pointer hover:opacity-80"
+                  }
+                >
+                  <span>✨ AI Summary</span>
+                  <ChevronDown
+                    className={`${
+                      styles.chevronIcon ||
+                      "w-4 h-4 text-foreground font-semibold transition-transform duration-300"
+                    } ${isCollapsibleOpen ? "rotate-180" : ""}`}
+                  />
+                </CollapsibleTrigger>
+                <CollapsibleContent
+                  className={styles.collapsibleContent || "px-6 pb-6 text-sm"}
+                >
+                  <Separator className="mb-3 mt-0 p-0" />
+                  <MarkdownViewer markdown={proposal.contentSummary || ""} />
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
+          )}
 
           {/* Full Proposal Content */}
           <div className="space-y-3">

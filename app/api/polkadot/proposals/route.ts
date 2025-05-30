@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
             chainId: proposal.id,
             title: `Referendum #${proposal.id}`,
             description: `On-chain proposal on track ${proposal.track}. Details: ${proposal.proposal}`,
+            contentSummary: proposal.contentSummary || "",
             proposer: proposal.proposer,
             track: proposal.track,
             createdAt: new Date(parseInt(proposal.submitted)).toISOString(),
@@ -73,6 +74,8 @@ export async function POST(req: NextRequest) {
             chainId: proposal.id,
             title: polkassemblyData.title,
             description: polkassemblyData.description,
+            contentSummary:
+              polkassemblyData.contentSummary || proposal.contentSummary || "",
             proposer: polkassemblyData.proposer,
             track: polkassemblyData.track || proposal.track,
             network,

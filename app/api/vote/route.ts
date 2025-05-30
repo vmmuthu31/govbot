@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
           chainId: proposalId,
           title: onChainProposal.title || `Referendum ${proposalId}`,
           description: onChainProposal.description || "On-chain proposal",
+          contentSummary: onChainProposal.contentSummary,
           proposer: onChainProposal.proposer,
           track: onChainProposal.track,
           network: network,

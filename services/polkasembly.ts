@@ -64,7 +64,7 @@ export async function fetchProposalFromPolkassembly(
         proposer: data.proposer || "Unknown",
         track: data.track,
         createdAt: data.created_at || new Date().toISOString(),
-        contentSummary: data.contentSummary.postSummary,
+        contentSummary: data?.contentSummary?.postSummary || "",
       };
     } catch (error) {
       console.error(`Attempt ${attempt + 1} failed:`, error);
@@ -131,6 +131,8 @@ export async function fetchActiveReferenda(
             `Invalid post data: missing id for post ${JSON.stringify(post)}`
           );
         }
+
+        console.log("post data:", post);
 
         return {
           chainId: String(post.index || post.id),

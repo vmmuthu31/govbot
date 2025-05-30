@@ -83,6 +83,7 @@ export async function POST(req: NextRequest) {
           title: onChainProposal.title || `Referendum ${proposalId}`,
           description:
             onChainProposal.description || "No description available",
+          contentSummary: onChainProposal.contentSummary,
           proposer: onChainProposal.proposer,
           track: onChainProposal.track,
           network: network,

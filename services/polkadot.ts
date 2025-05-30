@@ -2,12 +2,16 @@
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { Keyring } from "@polkadot/keyring";
 import { cryptoWaitReady } from "@polkadot/util-crypto";
+import {
+  type NetworkId,
+  ALL_GOVERNANCE_TRACKS,
+  NETWORKS,
+} from "@/lib/constants";
 import type { RefCountedProposal } from "@/lib/types";
-import { NETWORKS, NetworkId } from "@/lib/constants";
 import type { AccountInfo } from "@polkadot/types/interfaces";
 import type { SubmittableExtrinsic } from "@polkadot/api/types";
 import type { EventRecord } from "@polkadot/types/interfaces";
-import type { WalletAccount } from "@/services/wallet";
+import { WalletAccount } from "./wallet";
 
 export enum EVoteDecision {
   AYE = "aye",
@@ -306,7 +310,8 @@ class PolkadotService {
           "@/services/polkasembly"
         );
         const polkassemblyData = await fetchProposalFromPolkassembly(
-          referendumId
+          referendumId,
+          this.currentNetwork as NetworkId
         );
 
         title = polkassemblyData.title;
@@ -459,7 +464,7 @@ class PolkadotService {
    * @param delegateAddress Address to delegate to
    * @param amount Amount in DOT to delegate
    * @param conviction Conviction multiplier (1-6)
-   * @param tracks Array of tracks to delegate (default: [0])
+   * @param tracks Array of tracks to delegate (default: all tracks)
    * @param userAddress User's wallet address for signing
    * @param onSuccess Callback for successful transaction
    * @param onFailed Callback for failed transaction
@@ -468,7 +473,7 @@ class PolkadotService {
     delegateAddress,
     amount,
     conviction = 1,
-    tracks = [0],
+    tracks = ALL_GOVERNANCE_TRACKS,
     userAddress,
     onSuccess,
     onFailed,
@@ -793,9 +798,7 @@ class PolkadotService {
     amount: string,
     conviction: number,
     delegateAddress: string,
-    tracks: number[] = [
-      0, 2, 34, 33, 32, 31, 30, 11, 1, 10, 12, 13, 14, 15, 20, 21,
-    ]
+    tracks: number[] = ALL_GOVERNANCE_TRACKS
   ): Promise<string> {
     try {
       const { ApiPromise, WsProvider } = await import("@polkadot/api");

@@ -203,3 +203,45 @@ export const CHAT_LIMITS = {
   MAX_CHATS: 10,
   WARNING_THRESHOLD: 9,
 } as const;
+
+// Constants for OpenGov tracks
+export const OPENGOV_TRACKS = {
+  ROOT: 0, // Highest permission level, can change core protocol features
+  WHITELISTED_CALLER: 1, // Permission to call privileged functions
+  STAKING_ADMIN: 2, // Controls staking parameters
+  TREASURER: 10, // Controls spending of treasury funds
+  LEASE_ADMIN: 11, // Manages parachain slot leases
+  FELLOWSHIP_ADMIN: 12, // Fellowship self-governance
+  GENERAL_ADMIN: 13, // For administrative matters
+  AUCTION_ADMIN: 14, // Manages parachain auctions
+  REFERENDUM_CANCELLER: 15, // Can cancel referenda
+  REFERENDUM_KILLER: 20, // Can kill referenda
+  SMALL_TIPPER: 21, // Small treasury tips
+  BIG_TIPPER: 22, // Large treasury tips
+  SMALL_SPENDER: 30, // Small treasury spending
+  MEDIUM_SPENDER: 31, // Medium treasury spending
+  BIG_SPENDER: 32, // Large treasury spending
+  WISH_FOR_CHANGE: 33, // Wish for change proposals
+  RETAIN_AT_RANK: 34, // Fellowship rank retention
+} as const;
+
+// Array of all governance tracks for delegation
+export const ALL_GOVERNANCE_TRACKS = [
+  OPENGOV_TRACKS.ROOT,
+  OPENGOV_TRACKS.WHITELISTED_CALLER,
+  OPENGOV_TRACKS.STAKING_ADMIN,
+  OPENGOV_TRACKS.TREASURER,
+  OPENGOV_TRACKS.LEASE_ADMIN,
+  OPENGOV_TRACKS.FELLOWSHIP_ADMIN,
+  OPENGOV_TRACKS.GENERAL_ADMIN,
+  OPENGOV_TRACKS.AUCTION_ADMIN,
+  OPENGOV_TRACKS.REFERENDUM_CANCELLER,
+  OPENGOV_TRACKS.REFERENDUM_KILLER,
+  OPENGOV_TRACKS.SMALL_TIPPER,
+  OPENGOV_TRACKS.BIG_TIPPER,
+  OPENGOV_TRACKS.SMALL_SPENDER,
+  OPENGOV_TRACKS.MEDIUM_SPENDER,
+  OPENGOV_TRACKS.BIG_SPENDER,
+  OPENGOV_TRACKS.WISH_FOR_CHANGE,
+  OPENGOV_TRACKS.RETAIN_AT_RANK,
+];

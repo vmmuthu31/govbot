@@ -11,6 +11,7 @@ import type { WalletAccount } from "@/services/wallet";
 import { web3FromAddress } from "@polkadot/extension-dapp";
 import { BN, BN_ZERO } from "@polkadot/util";
 import { getEncodedAddress } from "@/utils/getEncodedAddress";
+import { ALL_GOVERNANCE_TRACKS } from "@/lib/constants";
 
 /**
  * Client-side Polkadot service for browser wallet integration
@@ -42,9 +43,7 @@ class PolkadotClientService {
     amount: string,
     conviction: number,
     delegateAddress: string,
-    tracks: number[] = [
-      0, 2, 34, 33, 32, 31, 30, 11, 1, 10, 12, 13, 14, 15, 20, 21,
-    ],
+    tracks: number[] = ALL_GOVERNANCE_TRACKS,
     networkId: string = "polkadot"
   ): Promise<string> {
     try {
