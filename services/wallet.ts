@@ -333,32 +333,6 @@ export class WalletService {
         return null;
       }
 
-      const { isValid, address } = this.verifyStoredSignature();
-      if (!isValid) {
-        console.log(
-          "Wallet signature is invalid or expired, requesting new one"
-        );
-        if (this.connectedWallet && this.connectedWallet.accounts.length > 0) {
-          const firstAccount = address
-            ? this.connectedWallet.accounts.find(
-                (acc) => acc.address === address
-              ) || this.connectedWallet.accounts[0]
-            : this.connectedWallet.accounts[0];
-
-          try {
-            const { WEB3_AUTH_SIGN_MESSAGE } = await import(
-              "@/utils/constants"
-            );
-            await this.requestSignature({
-              address: firstAccount.address,
-              message: WEB3_AUTH_SIGN_MESSAGE,
-            });
-          } catch (error) {
-            console.warn("Error refreshing signature:", error);
-          }
-        }
-      }
-
       const injectedWeb3 =
         (window as unknown as { injectedWeb3?: Record<string, unknown> })
           .injectedWeb3 || {};
