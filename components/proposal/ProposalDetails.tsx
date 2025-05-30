@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ExternalLinkIcon, User, ChevronDown } from "lucide-react";
 import { Badge } from "../ui/badge";
-import { ProposalWithMessages } from "@/lib/types";
+import { ENetwork, ProposalWithMessages } from "@/lib/types";
 import { VoteSummary } from "./VoteSummary";
 import { formatDistanceToNow } from "@/utils/formatDistanceToNow";
 import { MarkdownViewer } from "../Markdown/MarkdownViewer";
@@ -17,12 +17,14 @@ import { Separator } from "@/components/ui/separator";
 import styles from "./ProposalDetails.module.css";
 import { FiClock } from "react-icons/fi";
 import { WalletNudgeDialog } from "../wallet/WalletNudgeDialog";
+import { useNetwork } from "@/lib/network-context";
 
 interface ProposalDetailsProps {
   proposal: ProposalWithMessages;
 }
 
 export function ProposalDetails({ proposal }: ProposalDetailsProps) {
+  const { networkConfig } = useNetwork();
   const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(false);
   const [walletNudgeOpen, setWalletNudgeOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<{
@@ -40,7 +42,9 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
           <div className="flex items-center gap-2">
             <Badge variant="secondary">
               #{" "}
-              {proposal.network === "polkadot" ? proposal.id : proposal.chainId}
+              {networkConfig.id == ENetwork.POLKADOT
+                ? proposal.id
+                : proposal.chainId}
             </Badge>
             <Badge variant="outline">
               {getTrackName(proposal.track || "Unknown Track")}
