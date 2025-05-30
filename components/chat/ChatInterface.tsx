@@ -101,7 +101,7 @@ export function ChatInterface({
     try {
       setIsCheckingStatus(true);
       const response = await fetch(
-        `/api/proposals/status?chainId=${proposal.chainId}&network=${proposal.network}`
+        `/api/proposals/status?chainId=${proposal.id}&network=${proposal.network}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch proposal status");

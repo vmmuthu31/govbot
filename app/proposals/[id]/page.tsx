@@ -35,6 +35,7 @@ export default function ProposalDetailPage({
     const fetchProposal = async () => {
       try {
         const response = await fetch(`/api/proposals/${id}?network=${network}`);
+
         if (!response.ok) {
           const data = await response.json();
           if (response.status === 404 && data.status === "inactive") {

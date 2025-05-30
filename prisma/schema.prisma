@@ -29,6 +29,7 @@ model Proposal {
   updatedAt   DateTime  @updatedAt
   messages    Message[]
   vote        Vote?
+  contentSummary String?
 
   @@unique([chainId, network])
 }

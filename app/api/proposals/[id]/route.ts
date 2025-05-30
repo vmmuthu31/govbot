@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { polkadotService } from "@/services/polkadot";
 import { NetworkId } from "@/lib/constants";
-import prisma from "@/lib/db";
 
 export const GET = async (
   req: Request,
@@ -18,21 +17,6 @@ export const GET = async (
         { error: "Proposal ID is required" },
         { status: 400 }
       );
-    }
-
-    const dbProposal = await prisma.proposal.findFirst({
-      where: {
-        chainId: id,
-        network: network,
-      },
-      include: {
-        messages: true,
-        vote: true,
-      },
-    });
-
-    if (dbProposal) {
-      return NextResponse.json({ proposal: dbProposal });
     }
 
     polkadotService.setNetwork(network);

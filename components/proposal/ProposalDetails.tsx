@@ -105,7 +105,7 @@ export function ProposalDetails({ proposal }: ProposalDetailsProps) {
                 className={styles.collapsibleContent || "px-6 pb-6 text-sm"}
               >
                 <Separator className="mb-3 mt-0 p-0" />
-                <MarkdownViewer markdown="This proposal seeks funding for the development and open-source release of Epico, an Ethereum wallet compatibility layer for Polkadot SDK chains. Epico enables users to interact with Polkadot-based applications using familiar Ethereum wallets like MetaMask, without requiring EVM emulation or wallet plugins. The project aims to reduce barriers to adoption by allowing seamless wallet integration across ecosystems." />
+                <MarkdownViewer markdown={proposal.contentSummary || ""} />
               </CollapsibleContent>
             </div>
           </Collapsible>

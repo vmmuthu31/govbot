@@ -64,13 +64,7 @@ export async function fetchProposalFromPolkassembly(
         proposer: data.proposer || "Unknown",
         track: data.track,
         createdAt: data.created_at || new Date().toISOString(),
-        contentSummary: data.contentSummary || {
-          createdAt: data.created_at || new Date().toISOString(),
-          indexOrHash: proposalId,
-          id: proposalId,
-          proposalType: "referendum",
-          postSummary: data.title || "No summary available",
-        },
+        contentSummary: data.contentSummary.postSummary,
       };
     } catch (error) {
       console.error(`Attempt ${attempt + 1} failed:`, error);

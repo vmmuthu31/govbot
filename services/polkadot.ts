@@ -299,15 +299,7 @@ class PolkadotService {
 
       let title: string | undefined;
       let description: string | undefined;
-      let contentSummary:
-        | {
-            createdAt: string;
-            indexOrHash: string;
-            id: string;
-            proposalType: string;
-            postSummary: string;
-          }
-        | undefined;
+      let contentSummary: string | undefined;
 
       try {
         const { fetchProposalFromPolkassembly } = await import(
@@ -316,6 +308,7 @@ class PolkadotService {
         const polkassemblyData = await fetchProposalFromPolkassembly(
           referendumId
         );
+
         title = polkassemblyData.title;
         description = polkassemblyData.description;
         contentSummary = polkassemblyData.contentSummary;
