@@ -1,5 +1,6 @@
 import type { Proposal, Vote, Message } from "@/lib/generated/prisma";
 import type { NetworkId, NetworkConfig } from "./constants";
+import { RegistrationJudgement } from "@polkadot/types/interfaces";
 
 export enum EProposalStatus {
   DecisionDepositPlaced = "DecisionDepositPlaced",
@@ -189,4 +190,30 @@ export enum EWallet {
   POLKAGATE = "polkagate",
   NOVAWALLET = "nova",
   OTHER = "",
+}
+
+export enum ENetwork {
+  POLKADOT = "polkadot",
+  PASEO = "paseo",
+}
+
+export interface IOnChainIdentity {
+  display: string;
+  legal: string;
+  email: string;
+  twitter: string;
+  web: string;
+  github: string;
+  discord: string;
+  matrix: string;
+  displayParent: string;
+  nickname: string;
+  isIdentitySet: boolean;
+  isVerified: boolean;
+  isGood: boolean;
+  judgements: RegistrationJudgement[];
+  verifiedByPolkassembly: boolean;
+  parentProxyTitle: string | null;
+  parentProxyAddress: string;
+  hash?: string;
 }

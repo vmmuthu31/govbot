@@ -1,3 +1,6 @@
+import { BN } from "@polkadot/util";
+import { ENetwork } from "./types";
+
 export type NetworkId = "polkadot" | "paseo";
 
 interface ITreasuryAsset {
@@ -8,6 +11,17 @@ interface ITreasuryAsset {
 
 interface INetworkTreasuryAssets extends ITreasuryAsset {
   index: string;
+}
+
+interface IRpcEndpoint {
+  name: string;
+  url: string;
+}
+
+interface IPeopleChainDetails {
+  rpcEndpoints: IRpcEndpoint[];
+  polkassemblyRegistrarIndex?: number;
+  identityMinDeposit: BN;
 }
 
 export interface NetworkConfig {
@@ -28,6 +42,7 @@ export interface NetworkConfig {
   tokenDecimals: number;
   supportedAssets: Record<string, INetworkTreasuryAssets>;
   ss58Format: number;
+  peopleChainDetails: IPeopleChainDetails;
 }
 
 export enum EAssets {
@@ -57,6 +72,52 @@ export const treasuryAssetsData: Record<string, ITreasuryAsset> = {
     name: "mythos",
     tokenDecimal: 18,
     symbol: "MYTH",
+  },
+} as const;
+
+const PEOPLE_CHAIN_NETWORK_DETAILS: Record<ENetwork, IPeopleChainDetails> = {
+  [ENetwork.POLKADOT]: {
+    polkassemblyRegistrarIndex: 3,
+    identityMinDeposit: new BN("2001700000"),
+    rpcEndpoints: [
+      {
+        name: "via Parity",
+        url: "wss://polkadot-people-rpc.polkadot.io",
+      },
+      {
+        name: "via LuckyFriday",
+        url: "wss://rpc-people-polkadot.luckyfriday.io",
+      },
+      {
+        name: "via RadiumBlock",
+        url: "wss://people-polkadot.public.curie.radiumblock.co/ws",
+      },
+      {
+        name: "via IBP-GeoDNS1",
+        url: "wss://sys.ibp.network/people-polkadot",
+      },
+      {
+        name: "via IBP-GeoDNS2",
+        url: "wss://people-polkadot.dotters.network",
+      },
+    ],
+  },
+  [ENetwork.PASEO]: {
+    identityMinDeposit: new BN("1000000000000"),
+    rpcEndpoints: [
+      {
+        name: "via IBP 1",
+        url: "wss://sys.ibp.network/people-paseo",
+      },
+      {
+        name: "via IBP 2",
+        url: "wss://people-paseo.dotters.network",
+      },
+      {
+        name: "via Armfoc",
+        url: "wss://people-paseo.rpc.amforc.com",
+      },
+    ],
   },
 } as const;
 
@@ -112,6 +173,7 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
       },
     },
     ss58Format: 0,
+    peopleChainDetails: PEOPLE_CHAIN_NETWORK_DETAILS[ENetwork.POLKADOT],
   },
   paseo: {
     id: "paseo",
@@ -141,6 +203,7 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
     tokenDecimals: 10,
     supportedAssets: {},
     ss58Format: 0,
+    peopleChainDetails: PEOPLE_CHAIN_NETWORK_DETAILS[ENetwork.PASEO],
   },
 };
 
