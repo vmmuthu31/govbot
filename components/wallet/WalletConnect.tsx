@@ -226,28 +226,67 @@ export function WalletConnect({
 
       walletService.disconnect();
 
-      const wallet = await walletService.connectWallet(selectedWallet);
-      setConnectedWallet(wallet);
+      try {
+        const wallet = await walletService.connectWallet(selectedWallet, false);
+        setConnectedWallet(wallet);
 
-      if (wallet && wallet.accounts.length > 0) {
-        const firstAccount = wallet.accounts[0];
+        if (wallet && wallet.accounts.length > 0) {
+          const firstAccount = wallet.accounts[0];
+          const { isValid } = walletService.verifyStoredSignature();
 
-        const { isValid } = walletService.verifyStoredSignature();
+          if (isValid) {
+            toast.success(
+              `Connected to ${getWalletDisplayName(
+                wallet.name
+              )} and verified with signature`
+            );
+          } else {
+            toast.success(`Connected to ${getWalletDisplayName(wallet.name)}`);
+          }
 
-        if (isValid) {
-          toast.success(
-            `Connected to ${getWalletDisplayName(
-              wallet.name
-            )} and verified with signature`
+          if (onAccountSelected) {
+            onAccountSelected(firstAccount);
+          }
+          localStorage.setItem("selectedAccountAddress", firstAccount.address);
+        }
+      } catch (initialError) {
+        if (
+          initialError instanceof Error &&
+          initialError.message.includes("No accounts")
+        ) {
+          toast.info(
+            "Please allow access to your accounts in the wallet extension popup"
           );
-        } else {
-          toast.success(`Connected to ${getWalletDisplayName(wallet.name)}`);
-        }
 
-        if (onAccountSelected) {
-          onAccountSelected(firstAccount);
+          try {
+            const wallet = await walletService.connectWallet(
+              selectedWallet,
+              false,
+              true
+            );
+            setConnectedWallet(wallet);
+
+            if (wallet && wallet.accounts.length > 0) {
+              const firstAccount = wallet.accounts[0];
+
+              toast.success(
+                `Connected to ${getWalletDisplayName(wallet.name)}`
+              );
+
+              if (onAccountSelected) {
+                onAccountSelected(firstAccount);
+              }
+              localStorage.setItem(
+                "selectedAccountAddress",
+                firstAccount.address
+              );
+            }
+          } catch (retryError) {
+            throw retryError;
+          }
+        } else {
+          throw initialError;
         }
-        localStorage.setItem("selectedAccountAddress", firstAccount.address);
       }
     } catch (error) {
       console.error("Error connecting wallet:", error);

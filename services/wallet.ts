@@ -113,7 +113,8 @@ export class WalletService {
    */
   async connectWallet(
     walletName?: string,
-    skipSignature = false
+    skipSignature = false,
+    retryOnNoAccounts = false
   ): Promise<ConnectedWallet> {
     if (typeof window === "undefined") {
       throw new Error(
@@ -144,6 +145,12 @@ export class WalletService {
         throw new Error(
           `Selected wallet "${walletName}" is not properly initialized.`
         );
+      }
+
+      if (retryOnNoAccounts) {
+        await wallet
+          .enable(APP_NAME)
+          .then((value: any) => value.accounts.get());
       }
 
       const TIMEOUT_MS = 60000;
@@ -193,7 +200,7 @@ export class WalletService {
 
       if (walletAccounts.length === 0) {
         throw new Error(
-          `No accounts found in ${walletName}. Please create an account in your wallet extension.`
+          `No accounts found in ${walletName}. Please make sure you have accounts in your wallet and have authorized access. You can try refreshing the page and reconnecting.`
         );
       }
 
@@ -260,8 +267,6 @@ export class WalletService {
       if (!injector.signer || !injector.signer.signRaw) {
         throw new Error("Signer not available for this account");
       }
-
-      const { stringToHex } = await import("@polkadot/util");
 
       const { signature } = await injector.signer.signRaw({
         address,
