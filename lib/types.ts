@@ -193,3 +193,12 @@ export interface Post {
   track?: string;
   created_at?: string;
 }
+
+export enum EWallet {
+  POLKADOT = "polkadot-js",
+  SUBWALLET = "subwallet-js",
+  TALISMAN = "talisman",
+  POLKAGATE = "polkagate",
+  NOVAWALLET = "nova",
+  OTHER = "",
+}

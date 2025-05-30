@@ -37,6 +37,7 @@ import {
 import { toast } from "sonner";
 import { useNetwork } from "@/lib/network-context";
 import { formatBnBalance } from "@/utils/formatBnBalance";
+import { WalletButtons } from "@/components/wallet/WalletButtons";
 
 type WalletAccount = {
   address: string;
@@ -172,6 +173,7 @@ export function WalletConnect({
     if (connectedWallet && isClient) {
       fetchAccountBalances(connectedWallet);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectedWallet, networkConfig.id, isClient]);
 
   useEffect(() => {
@@ -221,15 +223,28 @@ export function WalletConnect({
     try {
       setLoading(true);
       const { walletService } = await import("@/services/wallet");
+
+      walletService.disconnect();
+
+      // Connect to wallet with signature request (handled in wallet.ts)
       const wallet = await walletService.connectWallet(selectedWallet);
       setConnectedWallet(wallet);
 
-      toast.success(
-        `Connected to ${wallet.name} with ${wallet.accounts.length} account(s)`
-      );
-
-      if (wallet.accounts.length > 0) {
+      if (wallet && wallet.accounts.length > 0) {
         const firstAccount = wallet.accounts[0];
+
+        const { isValid } = walletService.verifyStoredSignature();
+
+        if (isValid) {
+          toast.success(
+            `Connected to ${getWalletDisplayName(
+              wallet.name
+            )} and verified with signature`
+          );
+        } else {
+          toast.success(`Connected to ${getWalletDisplayName(wallet.name)}`);
+        }
+
         if (onAccountSelected) {
           onAccountSelected(firstAccount);
         }
@@ -237,9 +252,13 @@ export function WalletConnect({
       }
     } catch (error) {
       console.error("Error connecting wallet:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to connect wallet"
-      );
+
+      const { handleWalletError } = await import("@/utils/wallet-errors");
+      const errorMessage = handleWalletError(error);
+
+      toast.error(errorMessage);
+
+      setOpen(true);
     } finally {
       setLoading(false);
     }
@@ -545,10 +564,53 @@ export function WalletConnect({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Wallet className="h-4 w-4" />
-          <span className="hidden sm:inline">Connect Wallet</span>
-        </Button>
+        <div>
+          <WalletButtons
+            onWalletChange={(wallet) => {
+              if (wallet) {
+                const loadConnectedWallet = async () => {
+                  try {
+                    const { walletService } = await import("@/services/wallet");
+                    const connectedWallet = walletService.getConnectedWallet();
+
+                    if (connectedWallet) {
+                      setConnectedWallet(connectedWallet);
+
+                      if (connectedWallet.accounts.length > 0) {
+                        const persistedAccountAddress = localStorage.getItem(
+                          "selectedAccountAddress"
+                        );
+                        const account = persistedAccountAddress
+                          ? connectedWallet.accounts.find(
+                              (acc) => acc.address === persistedAccountAddress
+                            )
+                          : connectedWallet.accounts[0];
+
+                        if (account && onAccountSelected) {
+                          onAccountSelected(account);
+                          localStorage.setItem(
+                            "selectedAccountAddress",
+                            account.address
+                          );
+                        }
+                      }
+                    }
+                  } catch (error) {
+                    console.error("Error loading connected wallet:", error);
+                  }
+                };
+                loadConnectedWallet();
+              } else {
+                setConnectedWallet(null);
+                if (onAccountSelected) {
+                  onAccountSelected(null);
+                }
+                localStorage.removeItem("selectedAccountAddress");
+              }
+            }}
+            small={true}
+          />
+        </div>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
