@@ -252,7 +252,7 @@ export function ChatInterface({
     (proposalStatus?.hasVote || !proposalStatus?.isActive)
   ) {
     return (
-      <div className="flex h-[500px] sm:h-[600px] lg:h-[700px] xl:h-[800px] flex-col rounded-lg border bg-card text-card-foreground shadow w-full max-w-full overflow-hidden">
+      <div className="flex h-[500px] flex-col rounded-lg border bg-card text-card-foreground shadow w-full max-w-full overflow-hidden">
         <div className="flex items-center justify-between border-b px-2 sm:px-4 py-2">
           <div className="flex items-center">
             <Bot className="mr-2 h-5 w-5 text-primary" />
@@ -266,7 +266,7 @@ export function ChatInterface({
                 <h4 className="text-lg font-medium">
                   Voted: {proposalStatus.vote?.decision}
                 </h4>
-                <div className="prose prose-sm dark:prose-invert max-h-[200px] sm:max-h-[300px] lg:max-h-[450px] my-3 sm:my-5 overflow-y-auto text-left mx-auto">
+                <div className="prose prose-sm dark:prose-invert max-h-[300px]  my-3 sm:my-5 overflow-y-auto text-left mx-auto">
                   <MarkdownViewer
                     markdown={proposalStatus.vote?.reasoning ?? ""}
                   />
@@ -291,7 +291,7 @@ export function ChatInterface({
   }
 
   return (
-    <div className="relative flex h-[500px] sm:h-[600px] lg:h-[700px] xl:h-[800px] flex-col rounded-lg border bg-card text-card-foreground shadow w-full max-w-full overflow-hidden">
+    <div className="relative flex h-[500px] flex-col rounded-lg border bg-card text-card-foreground shadow w-full max-w-full overflow-hidden">
       {/* Account Status Bar */}
       <div className="flex items-center justify-between border-b px-2 sm:px-4 py-2">
         <div className="flex items-center">
@@ -329,9 +329,9 @@ export function ChatInterface({
             : ""
         }`}
       >
-        <ScrollArea className="flex-1 p-2 sm:p-4 overflow-hidden max-h-[400px] sm:max-h-[500px] lg:max-h-[600px] xl:max-h-[700px]">
+        <ScrollArea className="flex-1 p-2 sm:p-4 overflow-hidden max-h-[500px] ">
           {messages?.length === 0 ? (
-            <div className="flex h-[350px] sm:h-[450px] lg:h-[550px] xl:h-[625px] flex-col items-center justify-center space-y-4">
+            <div className="flex h-[500px] flex-col items-center justify-center space-y-4">
               <div className="flex flex-col items-center">
                 <Bot className="mb-2 h-12 w-12 text-muted-foreground" />
                 <p className="text-center text-sm text-muted-foreground">

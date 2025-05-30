@@ -177,7 +177,7 @@ export default function ProposalDetailPage({
                     Discuss this proposal with our AI governance assistant
                   </p>
                 </div>
-                <div className="sticky top-4">
+                <div className="sticky w-[400px] top-4">
                   <ChatInterface
                     proposal={proposal}
                     initialMessages={messages}
