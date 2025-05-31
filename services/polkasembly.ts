@@ -132,8 +132,6 @@ export async function fetchActiveReferenda(
           );
         }
 
-        console.log("post data:", post);
-
         return {
           chainId: String(post.index || post.id),
           title: post.title || "Untitled Proposal",

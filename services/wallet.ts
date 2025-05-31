@@ -324,11 +324,6 @@ export class WalletService {
         !this.connectedWallet ||
         !availableWallets.includes(this.connectedWallet.name)
       ) {
-        console.log(
-          `Wallet ${
-            this.connectedWallet?.name || "unknown"
-          } is no longer available`
-        );
         this.disconnect();
         return null;
       }
@@ -340,14 +335,12 @@ export class WalletService {
       const walletName = this.connectedWallet.name;
       const wallet = injectedWeb3[walletName] as any;
       if (!wallet || !wallet.enable) {
-        console.log(`Wallet ${walletName} is not properly initialized`);
         this.disconnect();
         return null;
       }
 
       try {
         if (!wallet) {
-          console.log(`Wallet object is null`);
           this.disconnect();
           return null;
         }
@@ -371,7 +364,6 @@ export class WalletService {
         ]);
 
         if (!injected) {
-          console.log(`Failed to enable wallet ${this.connectedWallet.name}`);
           this.disconnect();
           return null;
         }
@@ -404,9 +396,6 @@ export class WalletService {
       }));
 
       if (currentWalletAccounts.length === 0) {
-        console.log(
-          `No accounts available in wallet ${this.connectedWallet.name}`
-        );
         this.disconnect();
         return null;
       }

@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useNetwork } from "@/lib/network-context";
+import Link from "next/link";
 
 export function DelegateButton() {
   const { networkConfig } = useNetwork();
@@ -145,9 +146,14 @@ export function DelegateButton() {
                   <Label className="text-xs text-green-700 dark:text-green-300">
                     Transaction Hash:
                   </Label>
-                  <code className="ml-2 overflow-hidden text-ellipsis rounded-md bg-green-100 dark:bg-green-900 px-2 py-1 text-xs">
-                    {txHash.slice(0, 10)}...{txHash.slice(-8)}
-                  </code>
+                  <Link
+                    href={`https://${networkConfig.id}.subscan.io/extrinsic/${txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-2 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    View on Subscan
+                  </Link>
                 </div>
               )}
             </div>

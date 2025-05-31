@@ -100,10 +100,6 @@ export function ChatInterface({
   const checkProposalStatus = useCallback(async () => {
     try {
       setIsCheckingStatus(true);
-      console.log("Checking proposal status for:", proposal);
-      console.log("Checking proposal status for:", proposal.chainId);
-      console.log("Network:", proposal.network);
-      console.log("Proposal ID:", proposal.id);
       const proposalId =
         networkConfig.id === ENetwork.POLKADOT ? proposal.id : proposal.chainId;
       const response = await fetch(
