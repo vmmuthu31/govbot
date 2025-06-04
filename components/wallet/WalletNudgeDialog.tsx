@@ -81,34 +81,40 @@ export function WalletNudgeDialog({
   title,
   description,
 }: WalletNudgeDialogProps) {
-  const [currentGif, setCurrentGif] = useState(WALLET_GIFS[0]);
-  const [currentMessage, setCurrentMessage] = useState(NUDGE_MESSAGES[0]);
+  const [currentGif, setCurrentGif] = useState(() => WALLET_GIFS[0]);
+  const [currentMessage, setCurrentMessage] = useState(() => NUDGE_MESSAGES[0]);
   const [isLoadingGif, setIsLoadingGif] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
   const [isInCooldown, setIsInCooldown] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      const messageIndex = Math.floor(Math.random() * NUDGE_MESSAGES.length);
-      const gifArray = selectedAccount ? SUCCESS_GIFS : WALLET_GIFS;
-      const gifIndex = Math.floor(Math.random() * gifArray.length);
-      setCurrentMessage(NUDGE_MESSAGES[messageIndex]);
-      setCurrentGif(gifArray[gifIndex]);
-    }
-  }, [open]);
+    if (!open) return;
+    
+    const messageIndex = Math.floor(Math.random() * NUDGE_MESSAGES.length);
+    const gifArray = selectedAccount ? SUCCESS_GIFS : WALLET_GIFS;
+    const gifIndex = Math.floor(Math.random() * gifArray.length);
+    
+    setCurrentMessage(NUDGE_MESSAGES[messageIndex]);
+    setCurrentGif(gifArray[gifIndex]);
+  }, [open, selectedAccount]);
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (selectedAccount === null) {
-        const gifIndex = Math.floor(Math.random() * WALLET_GIFS.length);
-        setCurrentGif(WALLET_GIFS[gifIndex]);
-      } else if (selectedAccount) {
-        const gifIndex = Math.floor(Math.random() * SUCCESS_GIFS.length);
-        setCurrentGif(SUCCESS_GIFS[gifIndex]);
-      }
-    }, 300);
+    let mounted = true;
+    
+    const updateGif = () => {
+      if (!mounted) return;
+      
+      const gifArray = selectedAccount ? SUCCESS_GIFS : WALLET_GIFS;
+      const gifIndex = Math.floor(Math.random() * gifArray.length);
+      setCurrentGif(gifArray[gifIndex]);
+    };
 
-    return () => clearTimeout(timeoutId);
+    const timeoutId = setTimeout(updateGif, 300);
+
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+    };
   }, [selectedAccount]);
 
   const fetchRandomWalletGif = async () => {

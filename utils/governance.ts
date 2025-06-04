@@ -61,14 +61,14 @@ export function analyzeCost(proposal: ProposalWithMessages): CostAnalysis {
   const description = proposal.description.toLowerCase();
   const title = proposal.title.toLowerCase();
 
+  let estimatedCost: number | undefined;
+  let costJustification: string | undefined;
+
   const costRegex = /(\d+(?:,\d{3})*(?:\.\d+)?)\s*(dot|ksm|usd|dollars?)/gi;
   const matches = [
     ...description.matchAll(costRegex),
     ...title.matchAll(costRegex),
   ];
-
-  let estimatedCost: number | undefined;
-  let costJustification: string | undefined;
 
   if (matches.length > 0) {
     const match = matches[0];
@@ -78,10 +78,22 @@ export function analyzeCost(proposal: ProposalWithMessages): CostAnalysis {
     if (currency === "dot") {
       estimatedCost = amount;
     } else if (currency === "usd" || currency.includes("dollar")) {
-      estimatedCost = amount / 7;
+      estimatedCost = amount / 7; // Approximate DOT value
     }
 
     costJustification = `Estimated cost: ${match[0]}`;
+  }
+
+  if (!estimatedCost && proposal.description.includes("beneficiaries")) {
+    try {
+      const beneficiaryMatch = proposal.description.match(/amount":"(\d+)"/);
+      if (beneficiaryMatch && beneficiaryMatch[1]) {
+        estimatedCost = parseInt(beneficiaryMatch[1]) / Math.pow(10, 10); // Convert planck to DOT
+        costJustification = `Estimated cost from beneficiary data: ${estimatedCost} DOT`;
+      }
+    } catch (e) {
+      console.warn("Failed to parse beneficiary amount:", e);
+    }
   }
 
   let costEffectiveness = 0.5;
@@ -103,14 +115,23 @@ export function analyzeCost(proposal: ProposalWithMessages): CostAnalysis {
         ) {
           costEffectiveness += 0.2;
         }
+        if (
+          description.includes("institutional") ||
+          description.includes("adoption") ||
+          description.includes("compliance")
+        ) {
+          costEffectiveness += 0.1;
+        }
       }
     }
   }
 
+  costEffectiveness = Math.min(1, costEffectiveness);
+
   return {
     estimatedCost,
     costJustification,
-    costEffectiveness: Math.min(1, costEffectiveness),
+    costEffectiveness,
     budgetImpact: estimatedCost
       ? estimatedCost > 1000
         ? "High"

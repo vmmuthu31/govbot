@@ -296,7 +296,7 @@ export function FloatingChatBot() {
     if (showInitialTooltip) {
       const timer = setTimeout(() => {
         setShowInitialTooltip(false);
-      }, 5000);
+      }, 20000);
       return () => clearTimeout(timer);
     }
   }, [showInitialTooltip]);
@@ -319,14 +319,14 @@ export function FloatingChatBot() {
     }, 7000);
 
     return () => clearInterval(tooltipAnimation);
-  }, [tooltipMessages]);
+  }, []);
 
   return (
     <div className="fixed bottom-5 right-5 z-50">
       {/* Chat toggle button */}
       {!isOpen && (
         <TooltipProvider>
-          <Tooltip open={showInitialTooltip || Math.random() > 0.7}>
+          <Tooltip open={showInitialTooltip} delayDuration={500}>
             <TooltipTrigger asChild>
               <Button
                 onClick={() => {
