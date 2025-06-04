@@ -89,21 +89,21 @@ export function WalletNudgeDialog({
 
   useEffect(() => {
     if (!open) return;
-    
+
     const messageIndex = Math.floor(Math.random() * NUDGE_MESSAGES.length);
     const gifArray = selectedAccount ? SUCCESS_GIFS : WALLET_GIFS;
     const gifIndex = Math.floor(Math.random() * gifArray.length);
-    
+
     setCurrentMessage(NUDGE_MESSAGES[messageIndex]);
     setCurrentGif(gifArray[gifIndex]);
   }, [open, selectedAccount]);
 
   useEffect(() => {
     let mounted = true;
-    
+
     const updateGif = () => {
       if (!mounted) return;
-      
+
       const gifArray = selectedAccount ? SUCCESS_GIFS : WALLET_GIFS;
       const gifIndex = Math.floor(Math.random() * gifArray.length);
       setCurrentGif(gifArray[gifIndex]);
