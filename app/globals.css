@@ -121,7 +121,6 @@
   }
 }
 
-/* Chat message styling */
 .chat-message-content {
   word-break: break-word;
 }
@@ -142,6 +141,10 @@
 
 .chat-message-content em {
   font-style: italic;
+}
+
+.text-white .markdown-body * {
+  color: white !important;
 }
 
 @keyframes fadeIn {

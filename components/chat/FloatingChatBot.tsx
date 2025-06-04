@@ -1,11 +1,27 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Bot, X, Send, ChevronUp, ChevronDown, Info } from "lucide-react";
+import {
+  Bot,
+  X,
+  Send,
+  ChevronUp,
+  ChevronDown,
+  Info,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { FaUserAlt } from "react-icons/fa";
+import { MarkdownViewer } from "@/components/Markdown/MarkdownViewer";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type Message = {
   id: string;
@@ -13,6 +29,9 @@ type Message = {
   role: "user" | "assistant";
   timestamp: Date;
 };
+
+// Storage key for local storage
+const CHAT_STORAGE_KEY = "govbot-chat-history";
 
 export function FloatingChatBot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -42,6 +61,38 @@ export function FloatingChatBot() {
     "1573",
     "1579",
   ]);
+
+  useEffect(() => {
+    try {
+      const savedMessages = localStorage.getItem(CHAT_STORAGE_KEY);
+      if (savedMessages) {
+        const parsedMessages = JSON.parse(savedMessages);
+        const messagesWithDates = parsedMessages.map(
+          (msg: {
+            id: string;
+            content: string;
+            role: "user" | "assistant";
+            timestamp: string;
+          }) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp),
+          })
+        );
+        setMessages(messagesWithDates);
+      }
+    } catch (error) {
+      console.error("Failed to load chat history from local storage", error);
+    }
+  }, []);
+
+  // Save messages to local storage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+    } catch (error) {
+      console.error("Failed to save chat history to local storage", error);
+    }
+  }, [messages]);
 
   useEffect(() => {
     if (isOpen && messagesEndRef.current) {
@@ -111,6 +162,27 @@ export function FloatingChatBot() {
     }
   };
 
+  const handleDeleteMessage = (id: string) => {
+    setMessages((prev) => prev.filter((msg) => msg.id !== id));
+  };
+
+  const handleClearAllMessages = () => {
+    setMessages([
+      {
+        id: "welcome",
+        content:
+          "Hello! I'm GovBot, your Polkadot governance assistant. I can help you with:\n\n" +
+          "• Analyzing proposals and referenda\n" +
+          "• Scoring proposals based on technical feasibility, governance alignment and more\n" +
+          "• Explaining OpenGov tracks and voting mechanisms\n" +
+          "• Providing information on delegation and treasury proposals\n\n" +
+          "Reference specific proposals by ID (e.g., 'Analyze referendum #1588' or 'Should I vote for proposal 1573?') to get detailed insights.",
+        role: "assistant",
+        timestamp: new Date(),
+      },
+    ]);
+  };
+
   const handleSendMessage = async () => {
     if (!message.trim()) return;
 
@@ -143,11 +215,49 @@ export function FloatingChatBot() {
       const data = await response.json();
 
       if (response.ok) {
+        let processedContent = "";
+
+        if (typeof data.message === "object" && data.message.text) {
+          processedContent = data.message.text.replace(
+            /<think>[\s\S]*?<\/think>/g,
+            ""
+          ); // Remove thinking process if present
+        } else if (typeof data.message === "string") {
+          try {
+            if (
+              data.message.trim().startsWith("{") &&
+              data.message.trim().endsWith("}")
+            ) {
+              const parsedObj = JSON.parse(data.message);
+              if (parsedObj.text) {
+                processedContent = parsedObj.text;
+              } else if (parsedObj.message && parsedObj.message.text) {
+                processedContent = parsedObj.message.text;
+              } else {
+                processedContent = data.message;
+              }
+            } else {
+              processedContent = data.message;
+            }
+          } catch {
+            console.log("Failed to parse message JSON, using raw content");
+            processedContent = data.message;
+          }
+        } else {
+          processedContent = JSON.stringify(data.message);
+        }
+
+        // Clean any <think> tags from content
+        processedContent = processedContent.replace(
+          /<think>[\s\S]*?<\/think>/g,
+          ""
+        );
+
         setMessages((prev) => [
           ...prev,
           {
             id: Date.now().toString() + "-response",
-            content: data.message,
+            content: processedContent,
             role: "assistant",
             timestamp: new Date(),
           },
@@ -171,20 +281,7 @@ export function FloatingChatBot() {
     }
   };
 
-  const formatMessage = (content: string) => {
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const withLinks = content.replace(
-      urlRegex,
-      '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>'
-    );
-
-    const withBold = withLinks.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-    const withItalic = withBold.replace(/\*(.*?)\*/g, "<em>$1</em>");
-
-    const withBreaks = withItalic.replace(/\n/g, "<br />");
-
-    return withBreaks;
-  };
+  // formatMessage function removed as it's replaced by MarkdownViewer
 
   return (
     <div className="fixed bottom-5 right-5 z-50">
@@ -206,8 +303,7 @@ export function FloatingChatBot() {
           <div className="bg-primary text-primary-foreground p-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8 bg-primary-foreground">
-                <AvatarFallback>GB</AvatarFallback>
-                <AvatarImage src="/bot-avatar.png" alt="GovBot" />
+                <Bot className="h-7 w-7 pl-1 text-primary transition-transform group-hover:scale-110" />
               </Avatar>
               <div>
                 <h3 className="font-medium text-sm">GovBot Assistant</h3>
@@ -217,6 +313,26 @@ export function FloatingChatBot() {
               </div>
             </div>
             <div className="flex gap-1">
+              {messages.length > 1 && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-full hover:bg-primary-foreground/20 p-1"
+                        onClick={handleClearAllMessages}
+                        aria-label="Clear chat history"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Clear chat history</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -250,7 +366,7 @@ export function FloatingChatBot() {
                   <div
                     key={msg.id}
                     className={cn(
-                      "flex gap-2 animate-fadeIn",
+                      "flex gap-2 animate-fadeIn group relative",
                       msg.role === "user" ? "flex-row-reverse" : "flex-row"
                     )}
                   >
@@ -261,26 +377,53 @@ export function FloatingChatBot() {
                       )}
                     >
                       <AvatarFallback>
-                        {msg.role === "user" ? "U" : "G"}
+                        {msg.role === "user" ? (
+                          <FaUserAlt />
+                        ) : (
+                          <Bot className="h-7 w-7 text-primary transition-transform group-hover:scale-110" />
+                        )}
                       </AvatarFallback>
                       {msg.role === "assistant" && (
-                        <AvatarImage src="/bot-avatar.png" alt="GovBot" />
+                        <Bot className="h-7 w-7 text-primary transition-transform group-hover:scale-110" />
                       )}
                     </Avatar>
                     <div
                       className={cn(
-                        "rounded-lg px-3 py-2 text-sm max-w-[75%]",
+                        "rounded-lg px-3 py-2 text-sm max-w-[75%] relative",
                         msg.role === "user"
-                          ? "bg-primary text-primary-foreground"
+                          ? "bg-primary text-white"
                           : "bg-muted"
                       )}
                     >
+                      {msg.id !== "welcome" && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => handleDeleteMessage(msg.id)}
+                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-xs rounded-full p-0.5 hover:bg-red-100 dark:hover:bg-red-900"
+                                aria-label="Delete message"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Delete message</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                       <div
-                        dangerouslySetInnerHTML={{
-                          __html: formatMessage(msg.content),
-                        }}
-                        className="chat-message-content"
-                      />
+                        className={cn(
+                          "chat-message-content",
+                          msg.role === "user" ? "text-white" : ""
+                        )}
+                      >
+                        <MarkdownViewer 
+                          markdown={msg.content} 
+                          className={msg.role === "user" ? "text-white" : ""}
+                        />
+                      </div>
                       <div className="text-xs opacity-50 mt-1">
                         {msg.timestamp.toLocaleTimeString([], {
                           hour: "2-digit",
