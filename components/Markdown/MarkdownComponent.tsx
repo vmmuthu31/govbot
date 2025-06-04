@@ -1,5 +1,4 @@
 import type { Components } from "react-markdown";
-import Link from "next/link";
 import { ReactNode } from "react";
 
 const ValidatorService = {
@@ -142,9 +141,7 @@ export const markdownComponents: Components = {
     </pre>
   ),
   img: ({ src, alt, height, width, ...props }) => {
-    if (!src) {
-      return null;
-    }
+    if (!src) return null;
 
     const embedUrl = getEmbedUrl(src);
     if (embedUrl) {
@@ -191,29 +188,21 @@ export const markdownComponents: Components = {
     const imgWidth = width ? parseInt(width.toString()) : undefined;
 
     return (
-      <div className="my-4 flex justify-center">
-        <Link
-          href={src}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="cursor-pointer"
-        >
-          <img
-            src={src}
-            alt={alt || "Image"}
-            height={imgHeight}
-            width={imgWidth}
-            className="max-w-full h-auto rounded border border-border"
-            style={{
-              maxWidth: "100%",
-              height: "auto",
-              ...(imgWidth && { width: Math.min(imgWidth, 800) }),
-              ...(imgHeight && { maxHeight: Math.min(imgHeight, 600) }),
-            }}
-            {...props}
-          />
-        </Link>
-      </div>
+      <img
+        src={src}
+        alt={alt || "Image"}
+        height={imgHeight}
+        width={imgWidth}
+        className="my-4 mx-auto max-w-full h-auto rounded border border-border cursor-pointer"
+        style={{
+          maxWidth: "100%",
+          height: "auto",
+          ...(imgWidth && { width: Math.min(imgWidth, 800) }),
+          ...(imgHeight && { maxHeight: Math.min(imgHeight, 600) }),
+        }}
+        onClick={() => window.open(src, "_blank")}
+        {...props}
+      />
     );
   },
   a: ({ href, children, ...props }) => {
