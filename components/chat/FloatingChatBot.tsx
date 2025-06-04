@@ -60,6 +60,20 @@ export function FloatingChatBot() {
     "1573",
     "1579",
   ]);
+  const [showInitialTooltip, setShowInitialTooltip] = useState(true);
+  const [typingDots, setTypingDots] = useState<string>("");
+  const [currentTooltipMessage, setCurrentTooltipMessage] = useState<string>(
+    "Chat with GovBot about Polkadot governance!"
+  );
+  const tooltipMessages = [
+    "Ask me about proposal #1588!",
+    "Need help with OpenGov tracks?",
+    "Chat with GovBot about Polkadot governance!",
+    "Wondering how to delegate your votes?",
+    "Confused about conviction voting?",
+    "I can analyze referenda for you!",
+    "Get governance guidance here!",
+  ];
 
   useEffect(() => {
     try {
@@ -278,8 +292,6 @@ export function FloatingChatBot() {
     }
   };
 
-  const [showInitialTooltip, setShowInitialTooltip] = useState(true);
-
   useEffect(() => {
     if (showInitialTooltip) {
       const timer = setTimeout(() => {
@@ -289,12 +301,32 @@ export function FloatingChatBot() {
     }
   }, [showInitialTooltip]);
 
+  useEffect(() => {
+    const typingAnimation = setInterval(() => {
+      setTypingDots((prev) => (prev === "..." ? "" : prev + "."));
+    }, 500);
+
+    return () => clearInterval(typingAnimation);
+  }, []);
+
+  useEffect(() => {
+    const tooltipAnimation = setInterval(() => {
+      setCurrentTooltipMessage((prev) => {
+        const nextIndex =
+          (tooltipMessages.indexOf(prev) + 1) % tooltipMessages.length;
+        return tooltipMessages[nextIndex];
+      });
+    }, 7000);
+
+    return () => clearInterval(tooltipAnimation);
+  }, [tooltipMessages]);
+
   return (
     <div className="fixed bottom-5 right-5 z-50">
       {/* Chat toggle button */}
       {!isOpen && (
         <TooltipProvider>
-          <Tooltip open={showInitialTooltip}>
+          <Tooltip open={showInitialTooltip || Math.random() > 0.7}>
             <TooltipTrigger asChild>
               <Button
                 onClick={() => {
@@ -310,9 +342,10 @@ export function FloatingChatBot() {
                 <span className="absolute -top-1 -right-1 h-3 w-3 bg-blue-500 rounded-full animate-pulse"></span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-[200px]">
-              <p className="text-center">
-                Chat with GovBot about Polkadot governance!
+            <TooltipContent side="top" className="max-w-[250px] animate-fadeIn">
+              <p className="text-center transition-all duration-300">
+                {currentTooltipMessage}
+                {typingDots}
               </p>
             </TooltipContent>
           </Tooltip>
