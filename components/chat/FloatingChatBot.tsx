@@ -21,7 +21,12 @@ export function FloatingChatBot() {
     {
       id: "welcome",
       content:
-        "Hello! I'm GovBot, your Polkadot governance assistant. Ask me anything about Polkadot governance, OpenGov tracks, or proposals on Polkassembly. You can reference proposals by ID (e.g., 'Tell me about referendum #123').",
+        "Hello! I'm GovBot, your Polkadot governance assistant. I can help you with:\n\n" +
+        "• Analyzing proposals and referenda\n" +
+        "• Scoring proposals based on technical feasibility, governance alignment and more\n" +
+        "• Explaining OpenGov tracks and voting mechanisms\n" +
+        "• Providing information on delegation and treasury proposals\n\n" +
+        "Reference specific proposals by ID (e.g., 'Analyze referendum #1588' or 'Should I vote for proposal 1573?') to get detailed insights.",
       role: "assistant",
       timestamp: new Date(),
     },
@@ -50,9 +55,11 @@ export function FloatingChatBot() {
     "What are OpenGov tracks?",
     "How do I delegate my votes?",
     "Explain conviction voting",
-    "Tell me about referendum #123",
-    "How do I create a proposal?",
-    "What's a good Treasury proposal?",
+    "Analyze referendum #1588",
+    "Score proposal 1584",
+    "Should I vote for referendum #1573?",
+    "Tell me about the latest Treasury proposals",
+    "What's the status of proposal 1579?",
   ];
 
   useEffect(() => {
@@ -284,7 +291,8 @@ export function FloatingChatBot() {
               <div className="border-t p-3 flex gap-2">
                 <Input
                   placeholder={
-                    polkadotExample || "Ask about Polkadot governance..."
+                    polkadotExample ||
+                    "Ask about proposals, voting, or governance..."
                   }
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
