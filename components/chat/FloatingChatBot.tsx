@@ -419,8 +419,8 @@ export function FloatingChatBot() {
                           msg.role === "user" ? "text-white" : ""
                         )}
                       >
-                        <MarkdownViewer 
-                          markdown={msg.content} 
+                        <MarkdownViewer
+                          markdown={msg.content}
                           className={msg.role === "user" ? "text-white" : ""}
                         />
                       </div>
