@@ -11,6 +11,10 @@ const groq = createGroq({
 
 const MODEL = "qwen-qwq-32b";
 
+const MAX_RETRIES = 2;
+
+const NETWORKS: NetworkId[] = ["polkadot", "paseo"];
+
 const SYSTEM_PROMPT = `You are GovBot, an expert AI assistant specializing in Polkadot's OpenGov ecosystem, with comprehensive knowledge of blockchain governance mechanisms, technical infrastructure, and analytical capabilities.
 
 Your mission is to provide professional, data-driven, and actionable guidance on all aspects of Polkadot governance:
@@ -282,58 +286,136 @@ When users submit a **proposal**, **preimage**, or a **Polkassembly link**, you 
 
 Remember: You're a proactive governance advisor, not just a passive information source. Analyze thoroughly, highlight risks and opportunities, suggest improvements, and guide users toward successful governance participation in the Polkadot ecosystem. Your goal is to increase both the quality of governance proposals and the informed participation rate within the network.`;
 
+/**
+ * Enhanced proposal ID extraction with multiple patterns
+ */
 function extractProposalId(text: string): string | null {
   const patterns = [
-    /proposal\s*#?(\d+)/i,
     /referendum\s*#?(\d+)/i,
+    /referenda\s*#?(\d+)/i,
     /ref\s*#?(\d+)/i,
+    /proposal\s*#?(\d+)/i,
     /proposal id\s*#?(\d+)/i,
-    /referendum id\s*#?(\d+)/i,
-    /polkassembly.io\/referenda\/(\d+)/i,
-    /polkassembly.io\/post\/(\d+)/i,
+    /proposal\s*(\d+)/i,
+    /polkassembly\.io\/referenda\/(\d+)/i,
+    /polkassembly\.io\/post\/(\d+)/i,
+    /polkassembly\.io\/.*?\/(\d+)/i,
     /#(\d+)\b/i,
+    /post\s*#?(\d+)/i,
+    /post number\s*#?(\d+)/i,
+    /post\s*(\d+)/i,
+    /(?:about|analyze|check|look at|examine|review)\s+(?:referendum|referenda|proposal|post)?\s*#?(\d+)/i,
+    /(?:referendum|referenda|proposal|ref|post)\s+(\d+)/i,
   ];
 
   for (const pattern of patterns) {
     const match = text.match(pattern);
     if (match && match[1]) {
+      console.log(
+        `Extracted proposal ID: ${match[1]} using pattern: ${pattern}`
+      );
       return match[1];
     }
   }
   return null;
 }
 
+/**
+ * Sleep utility for retry mechanisms
+ */
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Enhanced proposal fetching with retries and multiple network fallback
+ */
 async function getProposalContext(
   message: string,
-  networkId: NetworkId = "polkadot"
+  specifiedNetworkId?: NetworkId
 ): Promise<string> {
   const proposalId = extractProposalId(message);
-  if (!proposalId) return "";
+  if (!proposalId) {
+    console.log("No proposal ID extracted from message");
+    return "";
+  }
 
-  try {
-    const proposal = await fetchProposalFromPolkassembly(proposalId, networkId);
+  const networksToTry = specifiedNetworkId
+    ? [specifiedNetworkId, ...NETWORKS.filter((n) => n !== specifiedNetworkId)]
+    : NETWORKS;
 
-    if (!proposal) return "";
+  console.log(
+    `Attempting to fetch proposal ${proposalId} from networks: ${networksToTry.join(
+      ", "
+    )}`
+  );
 
-    const trackName = getTrackName(proposal.track || "0");
+  for (const networkId of networksToTry) {
+    console.log(`Trying to fetch proposal ${proposalId} from ${networkId}`);
 
-    return `
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        console.log(`Attempt ${attempt} for network ${networkId}`);
+        const proposal = await fetchProposalFromPolkassembly(
+          proposalId,
+          networkId
+        );
+
+        if (proposal) {
+          const trackName = getTrackName(proposal.track || "0");
+
+          return `
 [PROPOSAL DATA]
 Proposal ID: ${proposalId}
-Title: ${proposal.title}
-Track: ${trackName} (${proposal.track})
-Proposer: ${proposal.proposer}
-Created: ${new Date(proposal.createdAt).toLocaleDateString()}
+Network: ${networkId}
+Title: ${proposal.title || "Untitled"}
+Track: ${trackName} (${proposal.track || "Unknown"})
+Proposer: ${proposal.proposer || "Unknown"}
+Created: ${
+            proposal.createdAt
+              ? new Date(proposal.createdAt).toLocaleDateString()
+              : "Unknown"
+          }
+
 Description Summary:
 ${proposal.contentSummary || "No summary available."}
 
-Note: This is real-time data fetched from Polkassembly for the referenced proposal. You should incorporate this context in your response and analyze these voting metrics.
+Note: This is real-time data fetched from Polkassembly for the referenced proposal. You should incorporate this context in your response and analyze these details.
 [END PROPOSAL DATA]
 `;
-  } catch (error) {
-    console.error("Error fetching proposal data:", error);
-    return `[Failed to fetch data for Proposal ID: ${proposalId}. Polkassembly API may be unavailable or the proposal doesn't exist. Please check if the ID is correct and try again later.]`;
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.error(
+          `Error fetching proposal data (Attempt ${attempt}/${MAX_RETRIES}, Network ${networkId}):`,
+          errorMessage
+        );
+
+        if (attempt < MAX_RETRIES) {
+          await sleep(1000 * attempt);
+        }
+      }
+    }
   }
+
+  return `
+[PROPOSAL LOOKUP FAILED]
+I attempted to fetch data for Proposal/Referendum ID: ${proposalId} across multiple networks (${networksToTry.join(
+    ", "
+  )}), but couldn't retrieve the information.
+
+This could be due to:
+1. The proposal ID might not exist yet
+2. The Polkassembly API might be temporarily unavailable
+3. The proposal might be on a different network than those checked
+4. The proposal might be very recent and not yet indexed
+
+To help me analyze this proposal, you could:
+1. Provide more details about what the proposal contains
+2. Share a direct link to the proposal on Polkassembly or Subscan
+3. Specify which network this proposal belongs to (Polkadot, Kusama, etc.)
+4. Share key details like the proposal title, track, and technical specifications
+[END PROPOSAL LOOKUP]
+`;
 }
 
 interface ChatMessage {
@@ -343,7 +425,7 @@ interface ChatMessage {
 
 export async function POST(req: Request) {
   try {
-    const { message, history, networkId = "polkadot" } = await req.json();
+    const { message, history, networkId } = await req.json();
 
     if (!message) {
       return NextResponse.json(
@@ -352,9 +434,16 @@ export async function POST(req: Request) {
       );
     }
 
+    console.log(
+      `Processing request for message: "${message.substring(
+        0,
+        50
+      )}..." with network: ${networkId || "not specified"}`
+    );
+
     const proposalContext = await getProposalContext(
       message,
-      networkId as NetworkId
+      networkId as NetworkId | undefined
     );
 
     const chatHistory = Array.isArray(history)
@@ -368,21 +457,28 @@ export async function POST(req: Request) {
       ? `${message}\n\n${proposalContext}`
       : message;
 
+    console.log(
+      `Sending to AI model with${proposalContext ? "" : "out"} proposal context`
+    );
+
     const response = await generateText({
       model: groq(MODEL),
       system: SYSTEM_PROMPT,
       messages: [...chatHistory, { role: "user", content: userMessage }],
       temperature: 0.6, // Reduced temperature for more consistent technical responses
-      maxTokens: 1250, // Increased token limit for comprehensive explanations
+      maxTokens: 1500, // Increased token limit for comprehensive explanations
     });
 
     return NextResponse.json({ message: response });
   } catch (error) {
-    console.error("Assistant chat API error:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Assistant chat API error:", errorMessage);
+
     return NextResponse.json(
       {
         error:
           "Failed to process your request. Please try again or contact support.",
+        details: errorMessage,
       },
       { status: 500 }
     );
