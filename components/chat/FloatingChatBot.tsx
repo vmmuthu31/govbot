@@ -30,7 +30,6 @@ type Message = {
   timestamp: Date;
 };
 
-// Storage key for local storage
 const CHAT_STORAGE_KEY = "govbot-chat-history";
 
 export function FloatingChatBot() {
@@ -85,7 +84,6 @@ export function FloatingChatBot() {
     }
   }, []);
 
-  // Save messages to local storage whenever they change
   useEffect(() => {
     try {
       localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
@@ -221,7 +219,7 @@ export function FloatingChatBot() {
           processedContent = data.message.text.replace(
             /<think>[\s\S]*?<\/think>/g,
             ""
-          ); // Remove thinking process if present
+          );
         } else if (typeof data.message === "string") {
           try {
             if (
@@ -247,7 +245,6 @@ export function FloatingChatBot() {
           processedContent = JSON.stringify(data.message);
         }
 
-        // Clean any <think> tags from content
         processedContent = processedContent.replace(
           /<think>[\s\S]*?<\/think>/g,
           ""
@@ -281,19 +278,45 @@ export function FloatingChatBot() {
     }
   };
 
-  // formatMessage function removed as it's replaced by MarkdownViewer
+  const [showInitialTooltip, setShowInitialTooltip] = useState(true);
+
+  useEffect(() => {
+    if (showInitialTooltip) {
+      const timer = setTimeout(() => {
+        setShowInitialTooltip(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showInitialTooltip]);
 
   return (
     <div className="fixed bottom-5 right-5 z-50">
       {/* Chat toggle button */}
       {!isOpen && (
-        <Button
-          onClick={() => setIsOpen(true)}
-          className="h-14 w-14 rounded-full bg-primary shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
-          aria-label="Open governance assistant"
-        >
-          <Bot className="h-6 w-6" />
-        </Button>
+        <TooltipProvider>
+          <Tooltip open={showInitialTooltip}>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => {
+                  setIsOpen(true);
+                  setShowInitialTooltip(false);
+                }}
+                className="h-14 w-14 rounded-full bg-primary shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center relative"
+                aria-label="Open governance assistant"
+              >
+                <Bot className="h-6 w-6" />
+                {/* Pulsing ring animation */}
+                <span className="absolute w-full h-full rounded-full bg-primary/30 animate-ping"></span>
+                <span className="absolute -top-1 -right-1 h-3 w-3 bg-blue-500 rounded-full animate-pulse"></span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-[200px]">
+              <p className="text-center">
+                Chat with GovBot about Polkadot governance!
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
 
       {/* Chat window */}
