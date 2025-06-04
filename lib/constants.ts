@@ -267,28 +267,26 @@ export const CHAT_LIMITS = {
   WARNING_THRESHOLD: 9,
 } as const;
 
-// Constants for OpenGov tracks
 export const OPENGOV_TRACKS = {
-  ROOT: 0, // Highest permission level, can change core protocol features
-  WHITELISTED_CALLER: 1, // Permission to call privileged functions
-  STAKING_ADMIN: 2, // Controls staking parameters
-  TREASURER: 10, // Controls spending of treasury funds
-  LEASE_ADMIN: 11, // Manages parachain slot leases
-  FELLOWSHIP_ADMIN: 12, // Fellowship self-governance
-  GENERAL_ADMIN: 13, // For administrative matters
-  AUCTION_ADMIN: 14, // Manages parachain auctions
-  REFERENDUM_CANCELLER: 15, // Can cancel referenda
-  REFERENDUM_KILLER: 20, // Can kill referenda
-  SMALL_TIPPER: 21, // Small treasury tips
-  BIG_TIPPER: 22, // Large treasury tips
-  SMALL_SPENDER: 30, // Small treasury spending
-  MEDIUM_SPENDER: 31, // Medium treasury spending
-  BIG_SPENDER: 32, // Large treasury spending
-  WISH_FOR_CHANGE: 33, // Wish for change proposals
-  RETAIN_AT_RANK: 34, // Fellowship rank retention
+  ROOT: 0,
+  WHITELISTED_CALLER: 1,
+  STAKING_ADMIN: 2,
+  TREASURER: 10,
+  LEASE_ADMIN: 11,
+  FELLOWSHIP_ADMIN: 12,
+  GENERAL_ADMIN: 13,
+  AUCTION_ADMIN: 14,
+  REFERENDUM_CANCELLER: 15,
+  REFERENDUM_KILLER: 20,
+  SMALL_TIPPER: 21,
+  BIG_TIPPER: 22,
+  SMALL_SPENDER: 30,
+  MEDIUM_SPENDER: 31,
+  BIG_SPENDER: 32,
+  WISH_FOR_CHANGE: 33,
+  RETAIN_AT_RANK: 34,
 } as const;
 
-// Array of all governance tracks for delegation
 export const ALL_GOVERNANCE_TRACKS = [
   OPENGOV_TRACKS.ROOT,
   OPENGOV_TRACKS.WHITELISTED_CALLER,

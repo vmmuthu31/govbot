@@ -47,7 +47,6 @@ export class IdentityService {
 
   async switchToNewRpcEndpoint(index?: number): Promise<void> {
     if (index) {
-      // check if valid index
       if (index < 0 || index >= NETWORKS[this.network].rpcEndpoints.length) {
         throw new Error(
           `Invalid RPC endpoint index: ${index}. Must be between 0 and ${
