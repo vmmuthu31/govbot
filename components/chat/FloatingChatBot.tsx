@@ -36,6 +36,12 @@ export function FloatingChatBot() {
   const [polkadotExample, setPolkadotExample] = useState<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [activeProposalIds, setActiveProposalIds] = useState<string[]>([
+    "1588",
+    "1584",
+    "1573",
+    "1579",
+  ]);
 
   useEffect(() => {
     if (isOpen && messagesEndRef.current) {
@@ -51,15 +57,47 @@ export function FloatingChatBot() {
     }
   }, [isOpen, isMinimized]);
 
-  const examples = [
+  useEffect(() => {
+    const fetchActiveProposals = async () => {
+      try {
+        const response = await fetch("/api/proposals/active?network=polkadot");
+        if (response.ok) {
+          const data = await response.json();
+          if (
+            data.activeProposals &&
+            Array.isArray(data.activeProposals) &&
+            data.activeProposals.length > 0
+          ) {
+            const randomIds =
+              data.activeProposals.length > 4
+                ? [...data.activeProposals]
+                    .sort(() => 0.5 - Math.random())
+                    .slice(0, 4)
+                : data.activeProposals;
+            setActiveProposalIds(randomIds);
+          }
+        }
+      } catch (error) {
+        console.warn("Could not fetch active proposals for examples", error);
+      }
+    };
+
+    fetchActiveProposals();
+  }, []);
+
+  const baseExamples = [
     "What are OpenGov tracks?",
     "How do I delegate my votes?",
     "Explain conviction voting",
-    "Analyze referendum #1588",
-    "Score proposal 1584",
-    "Should I vote for referendum #1573?",
+  ];
+
+  const examples = [
+    ...baseExamples,
+    `Analyze referendum #${activeProposalIds[0] || "1588"}`,
+    `Score proposal ${activeProposalIds[1] || "1584"}`,
+    `Should I vote for referendum #${activeProposalIds[2] || "1573"}?`,
     "Tell me about the latest Treasury proposals",
-    "What's the status of proposal 1579?",
+    `What's the status of proposal ${activeProposalIds[3] || "1579"}?`,
   ];
 
   useEffect(() => {

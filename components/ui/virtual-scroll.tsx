@@ -32,7 +32,7 @@ export function VirtualScroll<T>({
   useEffect(() => {
     setPage(1);
     loadMore();
-  }, [items]);
+  }, [items, loadMore]);
 
   useEffect(() => {
     if (inView) {
